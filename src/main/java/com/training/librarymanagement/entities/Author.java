@@ -1,19 +1,33 @@
 package com.training.librarymanagement.entities;
 
+import org.hibernate.annotations.GenericGenerator;
+
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import java.util.Set;
 import java.util.HashSet;
 
+@Entity
 public class Author {
-    private Integer id;
+
+    @GeneratedValue(generator = "uuid")
+    @GenericGenerator(name = "uuid", strategy = "uuid2")
+    @Id
+    private String id;
     private String firstName;
     private String lastName;
+
+    @OneToMany(mappedBy = "author", fetch = FetchType.LAZY)
     private Set<Book> book;
 
-    public Integer getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Integer id) {
+    public void setId(String id) {
         this.id = id;
     }
 

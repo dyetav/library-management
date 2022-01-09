@@ -1,18 +1,30 @@
 package com.training.librarymanagement.entities;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import java.util.Date;
+import java.util.Set;
 
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 public class Book {
 
     @Id
-    @GeneratedValue(generator = "")
     private String ISBN;
+
     private String rackNumber;
     private String title;
     private String subjectCategory;
+
+    @OneToMany(mappedBy = "book", fetch = FetchType.LAZY)
+    private Set<BookItem> items;
+
+    @ManyToOne
     private Author author;
     private Date publicationDate;
 
@@ -62,5 +74,13 @@ public class Book {
 
     public void setPublicationDate(Date publicationDate) {
         this.publicationDate = publicationDate;
+    }
+
+    public Set<BookItem> getItems() {
+        return items;
+    }
+
+    public void setItems(Set<BookItem> items) {
+        this.items = items;
     }
 }

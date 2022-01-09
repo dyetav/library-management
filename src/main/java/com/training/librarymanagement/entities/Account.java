@@ -1,14 +1,35 @@
 package com.training.librarymanagement.entities;
 
+import org.hibernate.annotations.GenericGenerator;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.Inheritance;
+import javax.persistence.InheritanceType;
 import javax.persistence.MappedSuperclass;
+import javax.persistence.OneToMany;
 import java.util.Set;
 
-@MappedSuperclass
+@Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 public class Account {
+
+    @GeneratedValue(generator = "uuid")
+    @GenericGenerator(name = "uuid", strategy = "uuid2")
+    @Column(columnDefinition = "CHAR(36)")
+    @Id
     private String id;
+
     private String firstName;
     private String lastName;
+
+    @OneToMany(mappedBy = "account")
     private Set<BookReservation> bookReservation;
+
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     private Set<Fine> fine;
 
     public String getId() {

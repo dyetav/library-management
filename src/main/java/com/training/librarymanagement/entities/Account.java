@@ -3,6 +3,8 @@ package com.training.librarymanagement.entities;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.Column;
+import javax.persistence.DiscriminatorColumn;
+import javax.persistence.DiscriminatorType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
@@ -15,6 +17,8 @@ import java.util.Set;
 
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name="account_type",
+    discriminatorType = DiscriminatorType.STRING)
 public class Account {
 
     @GeneratedValue(generator = "uuid")

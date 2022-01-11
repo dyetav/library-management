@@ -1,10 +1,9 @@
 package com.training.librarymanagement.repositories;
 
-import com.training.librarymanagement.entities.Book;
+import com.training.librarymanagement.entities.Author;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface LibraryRepository extends JpaRepository<Book, String> {
-
+public interface AuthorRepository extends JpaRepository<Author, String> {
 }

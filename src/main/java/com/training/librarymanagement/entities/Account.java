@@ -27,6 +27,8 @@ public class Account {
     @Id
     private String id;
 
+    private String username;
+
     private String firstName;
     private String lastName;
 
@@ -58,6 +60,14 @@ public class Account {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public Set<BookReservation> getBookReservation() {

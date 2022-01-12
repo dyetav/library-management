@@ -17,6 +17,7 @@ public class Author {
     @GenericGenerator(name = "uuid", strategy = "uuid2")
     @Id
     private String id;
+
     private String firstName;
     private String lastName;
 

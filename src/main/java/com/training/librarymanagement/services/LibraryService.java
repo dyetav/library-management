@@ -6,6 +6,7 @@ import com.training.librarymanagement.entities.dtos.AuthorDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
+import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
 import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
@@ -15,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,6 +60,19 @@ public class LibraryService {
         return toDTO(newBook);
     }
 
+    public void deleteBookByIsbn(String isbn) throws BookConflictException, BookNotFoundException {
+        Optional<Book> optBook = libraryRepository.findById(isbn);
+        if (optBook.isPresent()) {
+            Book book = optBook.get();
+            if (!CollectionUtils.isEmpty(book.getItems())) {
+                throw new BookConflictException();
+            }
+            libraryRepository.delete(book);
+        } else {
+            throw new BookNotFoundException();
+        }
+    }
+
     private List<BookDTO> toDTOs(List<Book> books) {
         List<BookDTO> bookDTOs = books.stream().map(b -> toDTO(b)).collect(Collectors.toList());
         return bookDTOs;
@@ -80,7 +95,5 @@ public class LibraryService {
         authorDTO.setLastName(author.getLastName());
         return authorDTO;
     }
-
-
 
 }

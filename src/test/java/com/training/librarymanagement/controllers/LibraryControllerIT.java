@@ -16,8 +16,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -47,7 +45,7 @@ public class LibraryControllerIT {
     @Test
     public void testGetBooksByIsbn_Success() {
         Author author = createAuthor("Diego", "Tavolaro");
-        Book book = createBook("ABC_123", author);
+        Book book = createBook("ABC_123", author, "Matrix");
         BookDTO testedBook = RestAssured.given().port(port).pathParam("isbn", book.getISBN())
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books/{isbn}")
@@ -71,8 +69,8 @@ public class LibraryControllerIT {
     @Test
     public void testGetBooks_Success() {
         Author author = createAuthor("Diego", "Tavolaro");
-        createBook("DEF_456", author);
-        createBook("ABC_123", author);
+        createBook("DEF_456", author, "Matrix1");
+        createBook("ABC_123", author, "Matrix2");
         BookDTO[] books = RestAssured.given().port(port)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books")
@@ -86,8 +84,8 @@ public class LibraryControllerIT {
     @Test
     public void testGetManyBooks_Success() {
         Author author = createAuthor("Diego", "Tavolaro");
-        for (int i=0; i<27; i++) {
-            createBook(UUID.randomUUID().toString(), author);
+        for (int i = 0; i < 27; i++) {
+            createBook(UUID.randomUUID().toString(), author, "Matrix" + i);
         }
 
         BookDTO[] books = RestAssured.given().port(port)
@@ -179,17 +177,29 @@ public class LibraryControllerIT {
         RestAssured.given().port(port).body(secondBook)
             .contentType(ContentType.JSON).expect().contentType(ContentType.JSON)
             .when().post("/library-management/api/library/v1/books")
-            .then().assertThat().statusCode(201);
+            .then().assertThat().statusCode(409);
 
     }
 
-    private Book createBook(String ISBN, Author author) {
+    @Test
+    public void testDeleteBookByISBN() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN())
+            .contentType(ContentType.JSON).expect()
+            .when().delete("/library-management/api/library/v1/books/{isbn}")
+            .then().assertThat().statusCode(204);
+
+    }
+
+    private Book createBook(String ISBN, Author author, String title) {
         Book book = new Book();
         book.setISBN(ISBN);
         book.setPublicationDate(new Date());
         book.setRackNumber("AAAA");
         book.setSubjectCategory("Science Fiction");
-        book.setTitle("Matrix");
+        book.setTitle(title);
         book.setAuthor(author);
         return libraryRepository.save(book);
     }

@@ -9,6 +9,7 @@ import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
 import com.training.librarymanagement.repositories.AuthorRepository;
+import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,9 @@ public class LibraryService {
 
     @Autowired
     private AuthorRepository authorRepository;
+
+    @Autowired
+    private ItemRepository itemRepository;
 
     public BookDTO getBooksByISBN(String isbn) throws BookNotFoundException {
         Optional<Book> book = libraryRepository.findById(isbn);

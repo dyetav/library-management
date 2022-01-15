@@ -5,6 +5,7 @@ import org.hibernate.annotations.GenericGenerator;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
@@ -32,7 +33,7 @@ public class BookItem {
     @OneToMany(mappedBy = "bookItem")
     private Set<BookReservation> bookReservation;
 
-    @ManyToOne
+    @ManyToOne(fetch= FetchType.EAGER)
     private Book book;
 
     public String getCode() {
@@ -65,5 +66,13 @@ public class BookItem {
 
     public void setBookReservation(Set<BookReservation> bookReservation) {
         this.bookReservation = bookReservation;
+    }
+
+    public Book getBook() {
+        return book;
+    }
+
+    public void setBook(Book book) {
+        this.book = book;
     }
 }

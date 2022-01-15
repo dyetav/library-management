@@ -2,9 +2,12 @@ package com.training.librarymanagement.controllers;
 
 import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
+import com.training.librarymanagement.entities.BookItem;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
+import com.training.librarymanagement.enums.Availability;
 import com.training.librarymanagement.repositories.AuthorRepository;
+import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -16,9 +19,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,8 +42,12 @@ public class LibraryControllerIT {
     @Autowired
     private AuthorRepository authorRepository;
 
+    @Autowired
+    private ItemRepository itemRepository;
+
     @AfterEach
     public void tearDown() {
+        itemRepository.deleteAll();
         libraryRepository.deleteAll();
         authorRepository.deleteAll();
     }
@@ -190,7 +200,18 @@ public class LibraryControllerIT {
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}")
             .then().assertThat().statusCode(204);
+    }
 
+    @Test
+    public void testDeleteBookByISBN_Failure_BookHasReservations() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN())
+            .contentType(ContentType.JSON).expect()
+            .when().delete("/library-management/api/library/v1/books/{isbn}")
+            .then().assertThat().statusCode(409);
     }
 
     private Book createBook(String ISBN, Author author, String title) {
@@ -202,6 +223,21 @@ public class LibraryControllerIT {
         book.setTitle(title);
         book.setAuthor(author);
         return libraryRepository.save(book);
+    }
+
+    private BookItem createItem(String code, Book book) {
+        BookItem item = new BookItem();
+        item.setPrice(new BigDecimal("15.00"));
+        item.setAvailablity(Availability.AVAILABLE);
+        item.setCode(code);
+        item.setBook(book);
+        item = itemRepository.save(item);
+
+        Set<BookItem> items = new HashSet<>();
+        items.add(item);
+        book.setItems(items);
+        book = libraryRepository.save(book);
+        return item;
     }
 
     private Author createAuthor(String firstName, String lastName) {

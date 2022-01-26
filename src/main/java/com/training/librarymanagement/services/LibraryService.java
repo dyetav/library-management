@@ -1,5 +1,6 @@
 package com.training.librarymanagement.services;
 
+import com.training.librarymanagement.entities.Account;
 import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.dtos.AuthorDTO;
@@ -8,6 +9,7 @@ import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
+import com.training.librarymanagement.repositories.AccountRepository;
 import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
@@ -19,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import javax.security.auth.login.AccountNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +41,9 @@ public class LibraryService {
 
     @Autowired
     private ItemRepository itemRepository;
+
+    @Autowired
+    private AccountRepository accountRepository;
 
     public BookDTO getBooksByISBN(String isbn) throws BookNotFoundException {
         Optional<Book> book = libraryRepository.findById(isbn);
@@ -75,6 +81,13 @@ public class LibraryService {
         } else {
             throw new BookNotFoundException();
         }
+    }
+
+    public void reserveBook(String isbn, String accountId) throws BookNotFoundException, AccountNotFoundException {
+        Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
+        Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException());
+
+
     }
 
     private List<BookDTO> toDTOs(List<Book> books) {

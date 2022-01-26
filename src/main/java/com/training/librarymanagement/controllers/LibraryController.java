@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.security.auth.login.AccountNotFoundException;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,11 +58,18 @@ public class LibraryController {
         return createdBook;
     }
 
-    @DeleteMapping("/v1/books/{ISBN}")
+    @DeleteMapping("/v1/books/{isbn}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteBookByISBN(@PathVariable("ISBN") String isbn) throws BookConflictException, BookNotFoundException {
+    public void deleteBookByISBN(@PathVariable("isbn") String isbn) throws BookConflictException, BookNotFoundException {
         LOG.info("Calling delete book by ISBN {}", isbn);
         libraryService.deleteBookByIsbn(isbn);
+    }
+
+    @PostMapping("/v1/books/{isbn}/account/{id}/reserve")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId) throws BookNotFoundException, AccountNotFoundException {
+        LOG.info("Calling reservation of a book by ISBN {} and for the account {}", isbn, accountId);
+        libraryService.reserveBook(isbn, accountId);
     }
 
 }

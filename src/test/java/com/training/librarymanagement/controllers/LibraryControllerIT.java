@@ -1,14 +1,17 @@
 package com.training.librarymanagement.controllers;
 
+import com.training.librarymanagement.entities.Account;
 import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.BookItem;
+import com.training.librarymanagement.entities.BookReservation;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.enums.Availability;
 import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
+import com.training.librarymanagement.utils.CommonUtils;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
@@ -24,14 +27,17 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(value = SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class LibraryControllerIT {
+public class LibraryControllerIT extends CommonUtils {
 
     @LocalServerPort
     private int port;
@@ -212,6 +218,36 @@ public class LibraryControllerIT {
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}")
             .then().assertThat().statusCode(409);
+    }
+
+    @Test
+    public void testReserveBookByISBN_Success() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        createItem("YYY", book);
+        Account member = createAccountMember("dietav", "Diego", "Tavolaro");
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().delete("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+
+        Optional<Book> reservedBookOpt = libraryRepository.findById(book.getISBN());
+        assertTrue(reservedBookOpt.isPresent());
+        Book reservedBook = reservedBookOpt.get();
+        Set<BookItem> items = book.getItems();
+        assertEquals(2, items.size());
+        List<BookItem> reservedItems = items.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
+        assertEquals(1, reservedItems.size());
+
+        BookItem reservedItem = reservedItems.get(0);
+        assertEquals(Availability.RESERVED, reservedItem.getAvailablity());
+        assertEquals(new BigDecimal("15.00"), reservedItem.getPrice());
+        assertEquals(1, reservedItem.getBookReservations().size());
+        Set<BookReservation> reservations = reservedItem.getBookReservations();
+        BookReservation reservation = reservations.stream().findFirst().get();
+
+
     }
 
     private Book createBook(String ISBN, Author author, String title) {

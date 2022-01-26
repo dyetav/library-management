@@ -31,7 +31,7 @@ public class BookItem {
     private BigDecimal price;
 
     @OneToMany(mappedBy = "bookItem")
-    private Set<BookReservation> bookReservation;
+    private Set<BookReservation> bookReservations;
 
     @ManyToOne(fetch= FetchType.EAGER)
     private Book book;
@@ -60,12 +60,12 @@ public class BookItem {
         this.price = price;
     }
 
-    public Set<BookReservation> getBookReservation() {
-        return bookReservation;
+    public Set<BookReservation> getBookReservations() {
+        return bookReservations;
     }
 
-    public void setBookReservation(Set<BookReservation> bookReservation) {
-        this.bookReservation = bookReservation;
+    public void setBookReservations(Set<BookReservation> bookReservations) {
+        this.bookReservations = bookReservations;
     }
 
     public Book getBook() {

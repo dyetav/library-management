@@ -3,14 +3,20 @@ package com.training.librarymanagement.services;
 import com.training.librarymanagement.entities.Account;
 import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
+import com.training.librarymanagement.entities.BookItem;
+import com.training.librarymanagement.entities.BookReservation;
 import com.training.librarymanagement.entities.dtos.AuthorDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
+import com.training.librarymanagement.entities.dtos.BookItemsDTO;
+import com.training.librarymanagement.entities.dtos.ReservationInputDTO;
+import com.training.librarymanagement.enums.Availability;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
 import com.training.librarymanagement.repositories.AccountRepository;
 import com.training.librarymanagement.repositories.AuthorRepository;
+import com.training.librarymanagement.repositories.BookReservationRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
 import org.slf4j.Logger;
@@ -19,13 +25,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.security.auth.login.AccountNotFoundException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +54,9 @@ public class LibraryService {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private BookReservationRepository bookReservationRepository;
 
     public BookDTO getBooksByISBN(String isbn) throws BookNotFoundException {
         Optional<Book> book = libraryRepository.findById(isbn);
@@ -83,11 +96,49 @@ public class LibraryService {
         }
     }
 
-    public void reserveBook(String isbn, String accountId) throws BookNotFoundException, AccountNotFoundException {
+    public void reserveBook(String isbn, String accountId, ReservationInputDTO reservationInput) throws BookNotFoundException, AccountNotFoundException {
         Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
         Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException());
+        Set<BookItem> bookItems = book.getItems();
+        boolean isAvailable = bookItems.stream().anyMatch(b -> b.getAvailablity().equals(Availability.AVAILABLE));
+        if (isAvailable) {
+            Set<BookItem> availableBookItems = bookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toSet());
+            BookItem pickABook = availableBookItems.stream().findAny().get();
+            pickABook.setAvailablity(Availability.ON_LOAN);
+            pickABook = itemRepository.save(pickABook);
+            BookReservation reservation = new BookReservation();
+            reservation.setAccount(account);
+            reservation.setBookItem(pickABook);
 
+            if (reservationInput != null) {
+                reservation.setStartBookingDate(Optional.ofNullable(reservationInput.getWishedStartDate()).orElse(new Date()));
+                reservation.setEndBookingDate(
+                    Optional
+                    .ofNullable(reservationInput.getWishedEndDate())
+                    .orElse(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)))
+                );
+            } else {
+                reservation.setStartBookingDate(new Date());
+                reservation.setEndBookingDate(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)));
+            }
 
+            reservation.setStartBookingDate(new Date());
+            reservation.setEndBookingDate(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)));
+            bookReservationRepository.save(reservation);
+        } else {
+
+        }
+    }
+
+    public BookItemsDTO getAvailableBookItemsByISBN(String isbn) throws BookNotFoundException {
+        Optional<Book> book = libraryRepository.findById(isbn);
+        return book.map(b -> toBookItemsDTO(b)).orElseThrow(() -> new BookNotFoundException());
+    }
+
+    private BookItemsDTO toBookItemsDTO(Book b) {
+        BookItemsDTO output = new BookItemsDTO();
+        output.setAvailableItems((int) b.getItems().stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).count());
+        return output;
     }
 
     private List<BookDTO> toDTOs(List<Book> books) {

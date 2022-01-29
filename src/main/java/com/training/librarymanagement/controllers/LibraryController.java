@@ -2,6 +2,8 @@ package com.training.librarymanagement.controllers;
 
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
+import com.training.librarymanagement.entities.dtos.BookItemsDTO;
+import com.training.librarymanagement.entities.dtos.ReservationInputDTO;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
@@ -65,11 +67,19 @@ public class LibraryController {
         libraryService.deleteBookByIsbn(isbn);
     }
 
+    @GetMapping("/v1/books/{isbn}/available-items")
+    public BookItemsDTO getAvailablBookItemsByISBN(@PathVariable String isbn) throws BookNotFoundException {
+        LOG.info("Calling get available items by book and by ISBN {}", isbn);
+        BookItemsDTO dto = libraryService.getAvailableBookItemsByISBN(isbn);
+        return dto;
+    }
+
+
     @PostMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId) throws BookNotFoundException, AccountNotFoundException {
+    public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation) throws BookNotFoundException, AccountNotFoundException {
         LOG.info("Calling reservation of a book by ISBN {} and for the account {}", isbn, accountId);
-        libraryService.reserveBook(isbn, accountId);
+        libraryService.reserveBook(isbn, accountId, reservation);
     }
 
 }

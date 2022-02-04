@@ -5,4 +5,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.CONFLICT)
 public class BookConflictException extends Exception {
+
+    public BookConflictException(String message) {
+        super(message);
+    }
 }

@@ -9,10 +9,7 @@ import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
 import com.training.librarymanagement.enums.Availability;
-import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.BookReservationRepository;
-import com.training.librarymanagement.repositories.ItemRepository;
-import com.training.librarymanagement.repositories.LibraryRepository;
 import com.training.librarymanagement.utils.CommonUtils;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -27,7 +24,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -44,24 +40,9 @@ public class LibraryControllerIT extends CommonUtils {
     @LocalServerPort
     private int port;
 
-    @Autowired
-    private LibraryRepository libraryRepository;
-
-    @Autowired
-    private AuthorRepository authorRepository;
-
-    @Autowired
-    private ItemRepository itemRepository;
-
-    @Autowired
-    private BookReservationRepository bookReservationRepository;
-
     @AfterEach
     public void tearDown() {
-        bookReservationRepository.deleteAll();
-        itemRepository.deleteAll();
-        libraryRepository.deleteAll();
-        authorRepository.deleteAll();
+        super.clearAllRepositories();
     }
 
     @Test
@@ -265,7 +246,6 @@ public class LibraryControllerIT extends CommonUtils {
         assertEquals(member.getId(), reservation.getAccount().getId());
         assertEquals(reservedItem.getCode(), reservation.getBookItem().getCode());
 
-
     }
 
     @Test
@@ -275,7 +255,7 @@ public class LibraryControllerIT extends CommonUtils {
         createItem("XXX", book, Availability.ON_LOAN);
         createItem("YYY", book, Availability.ON_LOAN);
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
-        assertEquals(2, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.ON_LOAN)));
+        assertEquals(2, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.ON_LOAN)).count());
 
         Account member = createAccountMember("dietav", "Diego", "Tavolaro");
         RestAssured.given().port(port)
@@ -283,7 +263,7 @@ public class LibraryControllerIT extends CommonUtils {
             .pathParam("id", member.getId())
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
-            .then().assertThat().statusCode(406);
+            .then().assertThat().statusCode(409);
 
         Optional<Book> reservedBookOpt = libraryRepository.findById(book.getISBN());
         assertTrue(reservedBookOpt.isPresent());
@@ -319,7 +299,7 @@ public class LibraryControllerIT extends CommonUtils {
     public void testGetAvailableBookItemsPerBook_NoAvailableItems_Success() {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("DEF_456", author, "Matrix1");
-        createItem("XXX", book, Availability.RESERVED);
+        createItem("XXX", book, Availability.ON_LOAN);
         createItem("YYY", book, Availability.ON_LOAN);
         createItem("ZZZ", book, Availability.ON_LOAN);
         BookItemsDTO output = RestAssured.given().port(port)
@@ -333,41 +313,5 @@ public class LibraryControllerIT extends CommonUtils {
         assertEquals(0, output.getAvailableItems());
     }
 
-    private Book createBook(String ISBN, Author author, String title) {
-        Book book = new Book();
-        book.setISBN(ISBN);
-        book.setPublicationDate(new Date());
-        book.setRackNumber("AAAA");
-        book.setSubjectCategory("Science Fiction");
-        book.setTitle(title);
-        book.setAuthor(author);
-        return libraryRepository.save(book);
-    }
-
-    private BookItem createItem(String code, Book book) {
-        return createItem(code, book, Availability.AVAILABLE);
-    }
-
-    private BookItem createItem(String code, Book book, Availability availability) {
-        BookItem item = new BookItem();
-        item.setPrice(new BigDecimal("15.00"));
-        item.setAvailablity(availability);
-        item.setCode(code);
-        item.setBook(book);
-        item = itemRepository.save(item);
-
-        Set<BookItem> items = new HashSet<>();
-        items.add(item);
-        book.setItems(items);
-        book = libraryRepository.save(book);
-        return item;
-    }
-
-    private Author createAuthor(String firstName, String lastName) {
-        Author author = new Author();
-        author.setFirstName(firstName);
-        author.setLastName(lastName);
-        return authorRepository.save(author);
-    }
 }
 

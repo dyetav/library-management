@@ -74,7 +74,7 @@ public class AccountControllerIT extends CommonUtils {
     }
 
     @Test
-    public void testGetReservedOrOnloanBooksByAccount_Success() {
+    public void testGetOnloanBooksByAccount_NoBooksOnLoan_Success() {
         Account member = createAccountMember("dietav", "Diego", "Tavolaro");
         BookDTO[] booksArray = RestAssured.given().port(port).pathParam("id", member.getId())
             .expect().contentType(ContentType.JSON)

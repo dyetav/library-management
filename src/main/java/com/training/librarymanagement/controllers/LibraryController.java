@@ -77,7 +77,8 @@ public class LibraryController {
 
     @PostMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation) throws BookNotFoundException, AccountNotFoundException {
+    public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
+            throws BookNotFoundException, AccountNotFoundException, BookConflictException {
         LOG.info("Calling reservation of a book by ISBN {} and for the account {}", isbn, accountId);
         libraryService.reserveBook(isbn, accountId, reservation);
     }

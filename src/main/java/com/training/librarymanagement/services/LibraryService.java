@@ -88,7 +88,7 @@ public class LibraryService {
         if (optBook.isPresent()) {
             Book book = optBook.get();
             if (!CollectionUtils.isEmpty(book.getItems())) {
-                throw new BookConflictException();
+                throw new BookConflictException("Not possible to delete book: items not deleted");
             }
             libraryRepository.delete(book);
         } else {
@@ -96,7 +96,7 @@ public class LibraryService {
         }
     }
 
-    public void reserveBook(String isbn, String accountId, ReservationInputDTO reservationInput) throws BookNotFoundException, AccountNotFoundException {
+    public void reserveBook(String isbn, String accountId, ReservationInputDTO reservationInput) throws BookNotFoundException, AccountNotFoundException, BookConflictException {
         Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
         Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException());
         Set<BookItem> bookItems = book.getItems();
@@ -126,7 +126,8 @@ public class LibraryService {
             reservation.setEndBookingDate(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)));
             bookReservationRepository.save(reservation);
         } else {
-
+            LOG.error("Book withs ISBN {} not available for account {}", isbn, accountId);
+            throw new BookConflictException("Book not available");
         }
     }
 

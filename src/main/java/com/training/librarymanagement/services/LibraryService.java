@@ -19,6 +19,7 @@ import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.BookReservationRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
+import com.training.librarymanagement.utils.LibraryMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,13 +61,13 @@ public class LibraryService {
 
     public BookDTO getBooksByISBN(String isbn) throws BookNotFoundException {
         Optional<Book> book = libraryRepository.findById(isbn);
-        BookDTO bookDTO = book.map(b -> toDTO(b)).orElseThrow(() -> new BookNotFoundException());
+        BookDTO bookDTO = book.map(b -> LibraryMapper.toDTO(b)).orElseThrow(() -> new BookNotFoundException());
         return bookDTO;
     }
 
     public List<BookDTO> getBooks(Pageable pageable) {
         Page<Book> paginatedBooks = libraryRepository.findAll(pageable);
-        return toDTOs(paginatedBooks.get().collect(Collectors.toList()));
+        return LibraryMapper.toDTOs(paginatedBooks.get().collect(Collectors.toList()));
     }
 
     public BookDTO createBook(BookInputDTO book) throws AuthorNotFoundException {
@@ -80,7 +81,7 @@ public class LibraryService {
         newBook.setRackNumber(book.getRackNumber());
         newBook.setPublicationDate(book.getPublicationDate());
         newBook = libraryRepository.save(newBook);
-        return toDTO(newBook);
+        return LibraryMapper.toDTO(newBook);
     }
 
     public void deleteBookByIsbn(String isbn) throws BookConflictException, BookNotFoundException {
@@ -133,36 +134,7 @@ public class LibraryService {
 
     public BookItemsDTO getAvailableBookItemsByISBN(String isbn) throws BookNotFoundException {
         Optional<Book> book = libraryRepository.findById(isbn);
-        return book.map(b -> toBookItemsDTO(b)).orElseThrow(() -> new BookNotFoundException());
-    }
-
-    private BookItemsDTO toBookItemsDTO(Book b) {
-        BookItemsDTO output = new BookItemsDTO();
-        output.setAvailableItems((int) b.getItems().stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).count());
-        return output;
-    }
-
-    private List<BookDTO> toDTOs(List<Book> books) {
-        List<BookDTO> bookDTOs = books.stream().map(b -> toDTO(b)).collect(Collectors.toList());
-        return bookDTOs;
-    }
-
-    private BookDTO toDTO(Book book) {
-        BookDTO bookDTO = new BookDTO();
-        bookDTO.setISBN(book.getISBN());
-        bookDTO.setRackNumber(book.getRackNumber());
-        bookDTO.setPublicationDate(book.getPublicationDate());
-        bookDTO.setSubjectCategory(book.getSubjectCategory());
-        bookDTO.setTitle(book.getTitle());
-        bookDTO.setAuthor(toDTO(book.getAuthor()));
-        return bookDTO;
-    }
-
-    private AuthorDTO toDTO(Author author) {
-        AuthorDTO authorDTO = new AuthorDTO();
-        authorDTO.setFirstName(author.getFirstName());
-        authorDTO.setLastName(author.getLastName());
-        return authorDTO;
+        return book.map(b -> LibraryMapper.toBookItemsDTO(b)).orElseThrow(() -> new BookNotFoundException());
     }
 
 }

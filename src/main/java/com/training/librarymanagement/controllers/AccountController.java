@@ -45,9 +45,8 @@ public class AccountController {
     }
 
     @GetMapping("/v1/accounts/{id}/books")
-    public List<BookDTO> getBooksOwnershipByAccount(@PathVariable("id") String accountId) {
-
-        return null;
+    public List<BookDTO> getBooksOwnershipByAccount(@PathVariable("id") String accountId) throws AccountNotFoundException {
+        return accountService.getBooksOwnershipByAccount(accountId);
     }
 
 }

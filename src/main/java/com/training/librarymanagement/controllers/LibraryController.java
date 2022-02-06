@@ -38,6 +38,11 @@ public class LibraryController {
     @Autowired
     private LibraryService libraryService;
 
+    @GetMapping("/v1/ping")
+    public String ping() {
+        return "pong";
+    }
+
     @GetMapping("/v1/books/{isbn}")
     public BookDTO getBooksByISBN(@PathVariable("isbn") String isbn) throws BookNotFoundException {
         LOG.info("Calling get books by ISBN with param isbn {}", isbn);

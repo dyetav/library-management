@@ -6,6 +6,7 @@ import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.exceptions.AccountNotFoundException;
 import com.training.librarymanagement.services.AccountService;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
+    @ApiOperation(value = "Get an account by its id", tags = {"account"})
     @GetMapping("/v1/accounts/{id}")
     public AccountDTO getAccountById(@PathVariable("id") String id) throws AccountNotFoundException {
         LOG.info("Calling get account by id with param id {}", id);
@@ -37,6 +39,7 @@ public class AccountController {
         return account;
     }
 
+    @ApiOperation(value = "Create an account", tags = {"account"})
     @PostMapping("/v1/accounts")
     @ResponseStatus(HttpStatus.CREATED)
     public void createAccount(@RequestBody AccountInputDTO accountToCreate) {
@@ -44,8 +47,10 @@ public class AccountController {
         accountService.createAccount(accountToCreate);
     }
 
+    @ApiOperation(value = "Get the reserved books by account id", tags = {"account"})
     @GetMapping("/v1/accounts/{id}/books")
     public List<BookDTO> getBooksOwnershipByAccount(@PathVariable("id") String accountId) throws AccountNotFoundException {
+        LOG.info("Get the reserved books by account {}", accountId);
         return accountService.getBooksOwnershipByAccount(accountId);
     }
 

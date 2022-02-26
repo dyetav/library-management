@@ -3,6 +3,7 @@ package com.training.librarymanagement.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.http.ResponseEntity;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -20,9 +21,16 @@ public class SwaggerConfiguration {
     public Docket api() {
         return new Docket( DocumentationType.SWAGGER_2 )
             .select()
-            .apis( RequestHandlerSelectors.any() )
-            .paths( PathSelectors.any() )
-            .build().apiInfo(metaData());
+            .apis(RequestHandlerSelectors.any())
+            .paths(PathSelectors.any())
+            .build()
+            .apiInfo(metaData())
+            .forCodeGeneration(true)
+            .directModelSubstitute(java.nio.ByteBuffer.class, String.class)
+            .genericModelSubstitutes(ResponseEntity.class)
+            .select()
+            .apis(RequestHandlerSelectors.basePackage( "com.training.librarymanagement"))
+            .build();
     }
 
     private ApiInfo metaData() {

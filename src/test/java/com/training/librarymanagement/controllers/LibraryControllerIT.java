@@ -5,6 +5,7 @@ import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.BookItem;
 import com.training.librarymanagement.entities.BookReservation;
+import com.training.librarymanagement.entities.dtos.AccountDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
@@ -31,6 +32,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(value = SpringExtension.class)
@@ -311,6 +313,32 @@ public class LibraryControllerIT extends CommonUtils {
 
         assertEquals(3, itemRepository.findByBook(book).size());
         assertEquals(0, output.getAvailableItems());
+    }
+
+    @Test
+    public void testGetOwnersByBook_Success() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        createItem("YYY", book);
+        Account member = createAccountMember("dietav", "Diego", "Tavolaro");
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+
+        AccountDTO[] accounts = RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN())
+            .contentType(ContentType.JSON).expect()
+            .when().get("/library-management/api/library/v1/books/{isbn}/accounts")
+            .then().assertThat().statusCode(200)
+            .extract().response().as(AccountDTO[].class);
+
+        assertNotNull(accounts);
+        assertEquals(1, accounts.length);
+        AccountDTO ownerToTest = accounts[0];
+        assertEquals("dietav", ownerToTest.getUsername());
+
     }
 
 }

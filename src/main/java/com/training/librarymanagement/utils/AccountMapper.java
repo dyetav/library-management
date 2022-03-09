@@ -7,6 +7,9 @@ import com.training.librarymanagement.entities.dtos.AccountDTO;
 import com.training.librarymanagement.entities.dtos.AccountInputDTO;
 import com.training.librarymanagement.enums.AccountType;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AccountMapper {
 
     public AccountMapper() {
@@ -38,5 +41,13 @@ public class AccountMapper {
             accountDTO.setActive(((Member) account).getActive());
         }
         return accountDTO;
+    }
+
+    public static List<AccountDTO> toDTOs(List<? extends  Account> accounts) {
+        List<AccountDTO> dtos = new ArrayList<>();
+        accounts.forEach(a -> {
+            dtos.add(toDTO(a));
+        });
+        return dtos;
     }
 }

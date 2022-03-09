@@ -5,6 +5,8 @@ import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.BookItem;
 import com.training.librarymanagement.entities.BookReservation;
+import com.training.librarymanagement.entities.Member;
+import com.training.librarymanagement.entities.dtos.AccountDTO;
 import com.training.librarymanagement.entities.dtos.AuthorDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
@@ -19,6 +21,7 @@ import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.BookReservationRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
+import com.training.librarymanagement.utils.AccountMapper;
 import com.training.librarymanagement.utils.LibraryMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +74,7 @@ public class LibraryService {
     }
 
     public BookDTO createBook(BookInputDTO book) throws AuthorNotFoundException {
-        Optional<Author> authorOpt = authorRepository.findById(book.getAuthorId());
-        Author author = authorOpt.orElseThrow(() -> new AuthorNotFoundException());
+        Author author = authorRepository.findById(book.getAuthorId()).orElseThrow(AuthorNotFoundException::new);
         Book newBook = new Book();
         newBook.setAuthor(author);
         newBook.setTitle(book.getTitle());
@@ -85,16 +87,11 @@ public class LibraryService {
     }
 
     public void deleteBookByIsbn(String isbn) throws BookConflictException, BookNotFoundException {
-        Optional<Book> optBook = libraryRepository.findById(isbn);
-        if (optBook.isPresent()) {
-            Book book = optBook.get();
-            if (!CollectionUtils.isEmpty(book.getItems())) {
-                throw new BookConflictException("Not possible to delete book: items not deleted");
-            }
-            libraryRepository.delete(book);
-        } else {
-            throw new BookNotFoundException();
+        Book book = libraryRepository.findById(isbn).orElseThrow(BookNotFoundException::new);
+        if (!CollectionUtils.isEmpty(book.getItems())) {
+            throw new BookConflictException("Not possible to delete book: items not deleted");
         }
+        libraryRepository.delete(book);
     }
 
     public void reserveBook(String isbn, String accountId, ReservationInputDTO reservationInput) throws BookNotFoundException, AccountNotFoundException, BookConflictException {
@@ -137,4 +134,12 @@ public class LibraryService {
         return book.map(b -> LibraryMapper.toBookItemsDTO(b)).orElseThrow(() -> new BookNotFoundException());
     }
 
+    public List<AccountDTO> getAccountsByBook(String isbn) throws BookNotFoundException {
+        Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
+        Set<BookItem> bookItems = book.getItems();
+        List<BookItem> onLoanItems = bookItems.stream().filter(b -> b.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
+        List<String> onLoanItemIds = onLoanItems.stream().map(BookItem::getCode).collect(Collectors.toList());
+        List<AccountDTO> owners = bookReservationRepository.findOwnersByBookItemIds(onLoanItemIds);
+        return owners;
+    }
 }

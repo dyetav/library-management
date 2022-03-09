@@ -1,5 +1,6 @@
 package com.training.librarymanagement.controllers;
 
+import com.training.librarymanagement.entities.dtos.AccountDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
@@ -15,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.security.auth.login.AccountNotFoundException;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/library-management/api/library")
@@ -61,6 +60,14 @@ public class LibraryController {
         return book;
     }
 
+    @ApiOperation(value = "Get the current owners of a book (who owns on-loan book items)", tags = {"library"})
+    @GetMapping("/v1/books/{isbn}/accounts")
+    public List<AccountDTO> getOwnersByBook(@PathVariable("isbn") String isbn) throws BookNotFoundException {
+        LOG.info("Calling get all books");
+        List<AccountDTO> owners = libraryService.getAccountsByBook(isbn);
+        return owners;
+    }
+
     @ApiOperation(value = "Create a book", tags = {"library"})
     @PostMapping("/v1/books")
     @ResponseStatus(HttpStatus.CREATED)
@@ -90,9 +97,27 @@ public class LibraryController {
     @PostMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
-            throws BookNotFoundException, AccountNotFoundException, BookConflictException {
+        throws BookNotFoundException, AccountNotFoundException, BookConflictException {
         LOG.info("Calling reservation of a book by ISBN {} and for the account {}", isbn, accountId);
         libraryService.reserveBook(isbn, accountId, reservation);
+    }
+
+    @ApiOperation(value = "Return a book by its ISBN", tags = {"library"})
+    @PostMapping("/v1/books/{isbn}/account/{id}/return")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void returnBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
+        throws BookNotFoundException, AccountNotFoundException, BookConflictException {
+
+
+    }
+
+    @ApiOperation(value = "Renew a book by its ISBN", tags = {"library"})
+    @PostMapping("/v1/books/{isbn}/account/{id}/renew")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void renewBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
+        throws BookNotFoundException, AccountNotFoundException, BookConflictException {
+
+
     }
 
 }

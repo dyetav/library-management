@@ -15,6 +15,17 @@ public class AccountDTO {
 
     private Boolean isActive;
 
+    public AccountDTO() {
+        // NOTHING
+    }
+
+    public AccountDTO(String username, String firstName, String lastName, Boolean isActive) {
+        this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.isActive = isActive;
+    }
+
     public String getUsername() {
         return username;
     }

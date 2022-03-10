@@ -4,6 +4,7 @@ import com.training.librarymanagement.entities.Account;
 import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.BookItem;
+import com.training.librarymanagement.entities.Librarian;
 import com.training.librarymanagement.entities.Member;
 import com.training.librarymanagement.enums.Availability;
 import com.training.librarymanagement.repositories.AccountRepository;
@@ -18,7 +19,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
-public class CommonUtils {
+public class CommonTestUtils {
 
     @Autowired
     protected AccountRepository accountRepository;
@@ -42,13 +43,18 @@ public class CommonUtils {
         authorRepository.deleteAll();
     }
 
-    protected Account createAccountMember(String username, String firstName, String lastName) {
-        Member member = new Member();
-        member.setFirstName(firstName);
-        member.setLastName(lastName);
-        member.setUsername(username);
-        member.setActive(true);
-        return accountRepository.save(member);
+    protected Account createAccount(String username, String firstName, String lastName, Boolean isActive) {
+        Account newAccount = null;
+        if (isActive == null) {
+            newAccount = new Librarian();
+        } else {
+            newAccount = new Member();
+            ((Member) newAccount).setActive(isActive);
+        }
+        newAccount.setFirstName(firstName);
+        newAccount.setLastName(lastName);
+        newAccount.setUsername(username);
+        return accountRepository.save(newAccount);
     }
 
     protected Book createBook(String ISBN, Author author, String title) {

@@ -17,8 +17,8 @@ public interface BookReservationRepository extends JpaRepository<BookReservation
 
     Set<BookReservation> findByAccount(Account account);
 
-    @Query(value = "select new com.training.librarymanagement.entities.dtos.AccountDTO(a.username, a.firstName, a.lastName, a.active) " +
-        "from Member a inner join a.bookReservation br " +
+    @Query(value = "select a " +
+        "from Account a inner join a.bookReservation br " +
         "where br.bookItem.code in :ids")
-    List<AccountDTO> findOwnersByBookItemIds(@Param("ids") List<String> bookItemIds);
+    List<Account> findOwnersByBookItemIds(@Param("ids") List<String> bookItemIds);
 }

@@ -139,7 +139,7 @@ public class LibraryService {
         Set<BookItem> bookItems = book.getItems();
         List<BookItem> onLoanItems = bookItems.stream().filter(b -> b.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
         List<String> onLoanItemIds = onLoanItems.stream().map(BookItem::getCode).collect(Collectors.toList());
-        List<AccountDTO> owners = bookReservationRepository.findOwnersByBookItemIds(onLoanItemIds);
-        return owners;
+        List<Account> owners = bookReservationRepository.findOwnersByBookItemIds(onLoanItemIds);
+        return AccountMapper.toDTOs(owners);
     }
 }

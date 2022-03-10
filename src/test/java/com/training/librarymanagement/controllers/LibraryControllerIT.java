@@ -10,14 +10,12 @@ import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
 import com.training.librarymanagement.enums.Availability;
-import com.training.librarymanagement.repositories.BookReservationRepository;
-import com.training.librarymanagement.utils.CommonUtils;
+import com.training.librarymanagement.utils.CommonTestUtils;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -37,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(value = SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class LibraryControllerIT extends CommonUtils {
+public class LibraryControllerIT extends CommonTestUtils {
 
     @LocalServerPort
     private int port;
@@ -215,7 +213,7 @@ public class LibraryControllerIT extends CommonUtils {
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
         createItem("YYY", book);
-        Account member = createAccountMember("dietav", "Diego", "Tavolaro");
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
@@ -259,7 +257,7 @@ public class LibraryControllerIT extends CommonUtils {
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
         assertEquals(2, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.ON_LOAN)).count());
 
-        Account member = createAccountMember("dietav", "Diego", "Tavolaro");
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port)
             .pathParam("isbn", book.getISBN())
             .pathParam("id", member.getId())
@@ -321,8 +319,21 @@ public class LibraryControllerIT extends CommonUtils {
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
         createItem("YYY", book);
-        Account member = createAccountMember("dietav", "Diego", "Tavolaro");
+        createItem("ZZZ", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        Account member2 = createAccount("elodie", "Elodie", "Tavolaro", true);
+        Account librarian = createAccount("chicco", "Paolo", "Raspadori", null);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", librarian.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member2.getId())
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
@@ -335,10 +346,12 @@ public class LibraryControllerIT extends CommonUtils {
             .extract().response().as(AccountDTO[].class);
 
         assertNotNull(accounts);
-        assertEquals(1, accounts.length);
-        AccountDTO ownerToTest = accounts[0];
-        assertEquals("dietav", ownerToTest.getUsername());
-
+        assertEquals(3, accounts.length);
+        List<AccountDTO> accountList = Arrays.asList(accounts);
+        List<String> usernames = accountList.stream().map(AccountDTO::getUsername).collect(Collectors.toList());
+        assertTrue(usernames.contains("dietav"));
+        assertTrue(usernames.contains("chicco"));
+        assertTrue(usernames.contains("elodie"));
     }
 
 }

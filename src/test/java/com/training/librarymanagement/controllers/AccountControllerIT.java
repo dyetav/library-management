@@ -8,7 +8,7 @@ import com.training.librarymanagement.entities.dtos.AccountInputDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.enums.AccountType;
 import com.training.librarymanagement.enums.Availability;
-import com.training.librarymanagement.utils.CommonUtils;
+import com.training.librarymanagement.utils.CommonTestUtils;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
@@ -25,14 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(value = SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class AccountControllerIT extends CommonUtils {
+public class AccountControllerIT extends CommonTestUtils {
 
     @LocalServerPort
     private int port;
 
     @Test
     public void testGetAccountById_Success() {
-        Account member = createAccountMember("dietav", "Diego", "Tavolaro");
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         Member testedMember = RestAssured.given().port(port).pathParam("id", member.getId())
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/account/v1/accounts/{id}")
@@ -78,7 +78,7 @@ public class AccountControllerIT extends CommonUtils {
 
     @Test
     public void testGetOnloanBooksByAccount_NoBooksOnLoan_Success() {
-        Account member = createAccountMember("dietav", "Diego", "Tavolaro");
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         BookDTO[] booksArray = RestAssured.given().port(port).pathParam("id", member.getId())
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/account/v1/accounts/{id}/books")
@@ -91,7 +91,7 @@ public class AccountControllerIT extends CommonUtils {
 
     @Test
     public void testGetOnloanBooksByAccount_SomeBooksOnLoan_Success() {
-        Account member = createAccountMember("dietav", "Diego", "Tavolaro");
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book, Availability.AVAILABLE);

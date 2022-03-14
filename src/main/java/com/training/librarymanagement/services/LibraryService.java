@@ -12,6 +12,7 @@ import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
 import com.training.librarymanagement.entities.dtos.ReservationInputDTO;
+import com.training.librarymanagement.entities.dtos.ReturnBookDTO;
 import com.training.librarymanagement.enums.Availability;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
@@ -33,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.security.auth.login.AccountNotFoundException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -97,7 +100,16 @@ public class LibraryService {
     public void reserveBook(String isbn, String accountId, ReservationInputDTO reservationInput) throws BookNotFoundException, AccountNotFoundException, BookConflictException {
         Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
         Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException());
+        Set<BookReservation> accountBookReservation = account.getBookReservation();
+        Set<BookItem> reservedBookItems = accountBookReservation.stream().map(BookReservation::getBookItem).collect(Collectors.toSet());
         Set<BookItem> bookItems = book.getItems();
+
+        boolean isBookAlreadyReserved = reservedBookItems.stream().anyMatch(b -> b.getBook().getISBN().equalsIgnoreCase(isbn));
+        if (isBookAlreadyReserved) {
+            LOG.error("Book withs ISBN {} already reserved by account {}", isbn, accountId);
+            throw new BookConflictException("Book already reserved");
+        }
+
         boolean isAvailable = bookItems.stream().anyMatch(b -> b.getAvailablity().equals(Availability.AVAILABLE));
         if (isAvailable) {
             Set<BookItem> availableBookItems = bookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toSet());
@@ -117,7 +129,7 @@ public class LibraryService {
                 );
             } else {
                 reservation.setStartBookingDate(new Date());
-                reservation.setEndBookingDate(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)));
+                reservation.setEndBookingDate(null);
             }
 
             reservation.setStartBookingDate(new Date());
@@ -141,5 +153,16 @@ public class LibraryService {
         List<String> onLoanItemIds = onLoanItems.stream().map(BookItem::getCode).collect(Collectors.toList());
         List<Account> owners = bookReservationRepository.findOwnersByBookItemIds(onLoanItemIds);
         return AccountMapper.toDTOs(owners);
+    }
+
+    public void returnBook(String isbn, String accountId, ReturnBookDTO returnInput) throws BookNotFoundException {
+        Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
+        LocalDateTime returnDate = returnInput.getReturnDate();
+
+        // search for bookitems by book (getBookItems)
+        // get reservation by calling a better version of findOwnersByBookItemsIds and account
+        // change return date
+        // apply fine if any
+
     }
 }

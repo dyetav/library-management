@@ -1,6 +1,7 @@
 package com.training.librarymanagement.entities;
 
 
+import com.training.librarymanagement.enums.FineStatus;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.Entity;
@@ -19,6 +20,8 @@ public class Fine {
     private String id;
 
     private BigDecimal price;
+
+    private FineStatus fineStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     private Account account;
@@ -45,5 +48,13 @@ public class Fine {
 
     public void setAccount(Account account) {
         this.account = account;
+    }
+
+    public FineStatus getFineStatus() {
+        return fineStatus;
+    }
+
+    public void setFineStatus(FineStatus fineStatus) {
+        this.fineStatus = fineStatus;
     }
 }

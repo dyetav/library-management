@@ -249,6 +249,24 @@ public class LibraryControllerIT extends CommonTestUtils {
     }
 
     @Test
+    public void testReserveBookByISBN_AvailableItem_ReserveAnAlreadyReservedBook_Error() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        createItem("YYY", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(409);
+
+    }
+
+    @Test
     public void testReserveBookByISBN_NotAvailableItem_ErrorMessage() {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
@@ -352,6 +370,21 @@ public class LibraryControllerIT extends CommonTestUtils {
         assertTrue(usernames.contains("dietav"));
         assertTrue(usernames.contains("chicco"));
         assertTrue(usernames.contains("elodie"));
+    }
+
+    @Test
+    public void testReturnBook_WithoutFineApplication_Success() {
+
+    }
+
+    @Test
+    public void testReturnBook_WithFineApplication_Success() {
+
+    }
+
+    @Test
+    public void testReturnBook_BookNotFound() {
+
     }
 
 }

@@ -5,6 +5,7 @@ import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
 import com.training.librarymanagement.entities.dtos.ReservationInputDTO;
+import com.training.librarymanagement.entities.dtos.ReturnBookDTO;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.security.auth.login.AccountNotFoundException;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -62,7 +64,9 @@ public class LibraryController {
 
     @ApiOperation(value = "Get the current owners of a book (who owns on-loan book items)", tags = {"library"})
     @GetMapping("/v1/books/{isbn}/accounts")
-    public List<AccountDTO> getOwnersByBook(@PathVariable("isbn") String isbn) throws BookNotFoundException {
+    public List<AccountDTO> getOwnersByBook(@PathVariable("isbn") String isbn)
+        throws BookNotFoundException {
+
         LOG.info("Calling get all books");
         List<AccountDTO> owners = libraryService.getAccountsByBook(isbn);
         return owners;
@@ -71,7 +75,9 @@ public class LibraryController {
     @ApiOperation(value = "Create a book", tags = {"library"})
     @PostMapping("/v1/books")
     @ResponseStatus(HttpStatus.CREATED)
-    public BookDTO createBook(@RequestBody BookInputDTO input) throws AuthorNotFoundException {
+    public BookDTO createBook(@RequestBody BookInputDTO input)
+        throws AuthorNotFoundException {
+
         LOG.info("Callng create book");
         BookDTO createdBook = libraryService.createBook(input);
         return createdBook;
@@ -87,7 +93,9 @@ public class LibraryController {
 
     @ApiOperation(value = "Get the available items of a book by its ISBN", tags = {"library"})
     @GetMapping("/v1/books/{isbn}/available-items")
-    public BookItemsDTO getAvailablBookItemsByISBN(@PathVariable String isbn) throws BookNotFoundException {
+    public BookItemsDTO getAvailablBookItemsByISBN(@PathVariable String isbn)
+        throws BookNotFoundException {
+
         LOG.info("Calling get available items by book and by ISBN {}", isbn);
         BookItemsDTO dto = libraryService.getAvailableBookItemsByISBN(isbn);
         return dto;
@@ -98,6 +106,7 @@ public class LibraryController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
         throws BookNotFoundException, AccountNotFoundException, BookConflictException {
+
         LOG.info("Calling reservation of a book by ISBN {} and for the account {}", isbn, accountId);
         libraryService.reserveBook(isbn, accountId, reservation);
     }
@@ -105,10 +114,11 @@ public class LibraryController {
     @ApiOperation(value = "Return a book by its ISBN", tags = {"library"})
     @PostMapping("/v1/books/{isbn}/account/{id}/return")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void returnBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
-        throws BookNotFoundException, AccountNotFoundException, BookConflictException {
+    public void returnBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReturnBookDTO returnInput)
+        throws BookNotFoundException {
 
-
+        LOG.info("Return Book with isbn {} for account {} with return {}", isbn, accountId, returnInput);
+        libraryService.returnBook(isbn, accountId, returnInput);
     }
 
     @ApiOperation(value = "Renew a book by its ISBN", tags = {"library"})

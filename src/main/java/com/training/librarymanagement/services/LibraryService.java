@@ -1,5 +1,6 @@
 package com.training.librarymanagement.services;
 
+import com.training.librarymanagement.configuration.LibraryManagementConfiguration;
 import com.training.librarymanagement.entities.Account;
 import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
@@ -34,8 +35,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import javax.security.auth.login.AccountNotFoundException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,6 +54,9 @@ public class LibraryService {
     private static Logger LOG = LoggerFactory.getLogger(LibraryService.class);
 
     @Autowired
+    private LibraryManagementConfiguration conf;
+
+    @Autowired
     private LibraryRepository libraryRepository;
 
     @Autowired
@@ -64,6 +70,9 @@ public class LibraryService {
 
     @Autowired
     private BookReservationRepository bookReservationRepository;
+
+    @Autowired
+    private FineService fineService;
 
     public BookDTO getBooksByISBN(String isbn) throws BookNotFoundException {
         Optional<Book> book = libraryRepository.findById(isbn);
@@ -121,19 +130,17 @@ public class LibraryService {
             reservation.setBookItem(pickABook);
 
             if (reservationInput != null) {
-                reservation.setStartBookingDate(Optional.ofNullable(reservationInput.getWishedStartDate()).orElse(new Date()));
+                reservation.setStartBookingDate(Optional.ofNullable(reservationInput.getWishedStartDate()).orElse(Date.from(Instant.now())));
                 reservation.setEndBookingDate(
                     Optional
                     .ofNullable(reservationInput.getWishedEndDate())
                     .orElse(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)))
                 );
             } else {
-                reservation.setStartBookingDate(new Date());
+                reservation.setStartBookingDate(Date.from(Instant.now()));
                 reservation.setEndBookingDate(null);
             }
 
-            reservation.setStartBookingDate(new Date());
-            reservation.setEndBookingDate(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)));
             bookReservationRepository.save(reservation);
         } else {
             LOG.error("Book withs ISBN {} not available for account {}", isbn, accountId);
@@ -155,14 +162,35 @@ public class LibraryService {
         return AccountMapper.toDTOs(owners);
     }
 
-    public void returnBook(String isbn, String accountId, ReturnBookDTO returnInput) throws BookNotFoundException {
-        Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
+    public void returnBook(String isbn, String accountId, ReturnBookDTO returnInput) throws BookNotFoundException, AccountNotFoundException {
+        libraryRepository.findById(isbn).orElseThrow(BookNotFoundException::new);
+        accountRepository.findById(accountId).orElseThrow(AccountNotFoundException::new);
         LocalDateTime returnDate = returnInput.getReturnDate();
+        Set<BookReservation> reservationsByAccount = bookReservationRepository.findReservationByAccountId(accountId);
+        BookReservation reservationTarget = reservationsByAccount.stream()
+            .filter(br -> br.getBookItem().getBook().getISBN().equalsIgnoreCase(isbn))
+            .findFirst().get();
+        if (returnDate == null) {
+            reservationTarget.setEndBookingDate(new Date());
+        } else {
+            reservationTarget.setEndBookingDate(Date.from(returnDate.atZone(ZoneId.systemDefault()).toInstant()));
+        }
 
-        // search for bookitems by book (getBookItems)
-        // get reservation by calling a better version of findOwnersByBookItemsIds and account
-        // change return date
+        // make the book item available
+        reservationTarget.getBookItem().setAvailablity(Availability.AVAILABLE);
+        reservationTarget = bookReservationRepository.save(reservationTarget);
+
         // apply fine if any
+        boolean outOfTime = isReservationOutOfTime(reservationTarget);
+        if (outOfTime) {
+            fineService.createFine(isbn, accountId);
+        }
+    }
 
+    private boolean isReservationOutOfTime(BookReservation reservationTarget) {
+        LocalDateTime startBookingDateTime = reservationTarget.getStartBookingDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        LocalDateTime endBookingDateTime = reservationTarget.getEndBookingDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        long reservedDays = ChronoUnit.DAYS.between(startBookingDateTime, endBookingDateTime);
+        return reservedDays > conf.getReturnDays();
     }
 }

@@ -10,6 +10,7 @@ import com.training.librarymanagement.enums.Availability;
 import com.training.librarymanagement.repositories.AccountRepository;
 import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.BookReservationRepository;
+import com.training.librarymanagement.repositories.FineRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,9 @@ public class CommonTestUtils {
     protected ItemRepository itemRepository;
 
     @Autowired
+    protected FineRepository fineRepository;
+
+    @Autowired
     protected BookReservationRepository bookReservationRepository;
 
     protected void clearAllRepositories() {
@@ -41,6 +45,7 @@ public class CommonTestUtils {
         itemRepository.deleteAll();
         libraryRepository.deleteAll();
         authorRepository.deleteAll();
+        fineRepository.deleteAll();;
     }
 
     protected Account createAccount(String username, String firstName, String lastName, Boolean isActive) {

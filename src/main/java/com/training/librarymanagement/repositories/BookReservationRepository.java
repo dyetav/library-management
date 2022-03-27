@@ -21,5 +21,10 @@ public interface BookReservationRepository extends JpaRepository<BookReservation
         "where br.bookItem.code in :ids")
     List<Account> findOwnersByBookItemIds(@Param("ids") List<String> bookItemIds);
 
+    @Query(value = "select br " +
+        "from BookReservation br inner join br.account a " +
+        "where br.account.id = :id")
+    Set<BookReservation> findReservationByAccountId(@Param("id") String id);
+
 
 }

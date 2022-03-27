@@ -115,7 +115,7 @@ public class LibraryController {
     @PostMapping("/v1/books/{isbn}/account/{id}/return")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void returnBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReturnBookDTO returnInput)
-        throws BookNotFoundException {
+        throws BookNotFoundException, AccountNotFoundException {
 
         LOG.info("Return Book with isbn {} for account {} with return {}", isbn, accountId, returnInput);
         libraryService.returnBook(isbn, accountId, returnInput);

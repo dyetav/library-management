@@ -5,10 +5,12 @@ import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.BookItem;
 import com.training.librarymanagement.entities.BookReservation;
+import com.training.librarymanagement.entities.Fine;
 import com.training.librarymanagement.entities.dtos.AccountDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
+import com.training.librarymanagement.entities.dtos.ReturnBookDTO;
 import com.training.librarymanagement.enums.Availability;
 import com.training.librarymanagement.utils.CommonTestUtils;
 import io.restassured.RestAssured;
@@ -21,6 +23,7 @@ import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -374,17 +377,64 @@ public class LibraryControllerIT extends CommonTestUtils {
 
     @Test
     public void testReturnBook_WithoutFineApplication_Success() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        createItem("YYY", book);
+        createItem("ZZZ", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
 
+        Set<BookItem> initialBookItems = itemRepository.findByBook(book);
+        assertEquals(1, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.ON_LOAN)).count());
+        assertEquals(2, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).count());
+
+        ReturnBookDTO returnBook = new ReturnBookDTO();
+        returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .body(returnBook)
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/return")
+            .then().assertThat().statusCode(202);
+
+        initialBookItems = itemRepository.findByBook(book);
+        assertEquals(0, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.ON_LOAN)).count());
+        assertEquals(3, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).count());
+
+        List<Fine> fines = fineRepository.findAll();
+        assertEquals(0, fines.size());
     }
 
     @Test
     public void testReturnBook_WithFineApplication_Success() {
-
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        createItem("YYY", book);
+        createItem("ZZZ", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
     }
 
     @Test
     public void testReturnBook_BookNotFound() {
-
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        createItem("YYY", book);
+        createItem("ZZZ", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
     }
 
 }

@@ -2,9 +2,9 @@ package com.training.librarymanagement.services;
 
 import com.training.librarymanagement.configuration.LibraryManagementConfiguration;
 import com.training.librarymanagement.entities.Account;
-import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.Fine;
 import com.training.librarymanagement.enums.FineStatus;
+import com.training.librarymanagement.exceptions.AccountNotFoundException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
 import com.training.librarymanagement.repositories.AccountRepository;
 import com.training.librarymanagement.repositories.FineRepository;
@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import javax.security.auth.login.AccountNotFoundException;
 import java.math.BigDecimal;
 
 @Service

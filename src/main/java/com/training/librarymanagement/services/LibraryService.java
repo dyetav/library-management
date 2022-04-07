@@ -6,15 +6,14 @@ import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.BookItem;
 import com.training.librarymanagement.entities.BookReservation;
-import com.training.librarymanagement.entities.Member;
 import com.training.librarymanagement.entities.dtos.AccountDTO;
-import com.training.librarymanagement.entities.dtos.AuthorDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
 import com.training.librarymanagement.entities.dtos.ReservationInputDTO;
 import com.training.librarymanagement.entities.dtos.ReturnBookDTO;
 import com.training.librarymanagement.enums.Availability;
+import com.training.librarymanagement.exceptions.AccountNotFoundException;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
@@ -31,17 +30,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import javax.security.auth.login.AccountNotFoundException;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -133,8 +127,8 @@ public class LibraryService {
                 reservation.setStartBookingDate(Optional.ofNullable(reservationInput.getWishedStartDate()).orElse(Date.from(Instant.now())));
                 reservation.setEndBookingDate(
                     Optional
-                    .ofNullable(reservationInput.getWishedEndDate())
-                    .orElse(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)))
+                        .ofNullable(reservationInput.getWishedEndDate())
+                        .orElse(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)))
                 );
             } else {
                 reservation.setStartBookingDate(Date.from(Instant.now()));
@@ -187,10 +181,28 @@ public class LibraryService {
         }
     }
 
+    public void deleteBookItemByIsbnAndCode(String isbn, String code) throws BookNotFoundException, BookConflictException {
+        Book book = libraryRepository.findById(isbn).orElseThrow(BookNotFoundException::new);
+        Set<BookItem> bookItems = book.getItems();
+        BookItem bookItemToDelete = bookItems.stream().filter(bi -> bi.getCode().equals(code)).findFirst().orElseThrow(BookNotFoundException::new);
+        if (bookItemToDelete.getBookReservations().isEmpty()) {
+            bookItems.remove(bookItemToDelete);
+            libraryRepository.save(book);
+            itemRepository.delete(bookItemToDelete);
+        } else {
+            throw new BookConflictException("Book Item to delete has got a reservation");
+        }
+    }
+
+    public void deleteBookReservation(String isbn, String accountId) {
+
+    }
+
     private boolean isReservationOutOfTime(BookReservation reservationTarget) {
         LocalDateTime startBookingDateTime = reservationTarget.getStartBookingDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
         LocalDateTime endBookingDateTime = reservationTarget.getEndBookingDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
         long reservedDays = ChronoUnit.DAYS.between(startBookingDateTime, endBookingDateTime);
         return reservedDays > conf.getReturnDays();
     }
+
 }

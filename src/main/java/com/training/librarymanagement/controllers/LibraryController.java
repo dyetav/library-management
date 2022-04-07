@@ -6,6 +6,7 @@ import com.training.librarymanagement.entities.dtos.BookInputDTO;
 import com.training.librarymanagement.entities.dtos.BookItemsDTO;
 import com.training.librarymanagement.entities.dtos.ReservationInputDTO;
 import com.training.librarymanagement.entities.dtos.ReturnBookDTO;
+import com.training.librarymanagement.exceptions.AccountNotFoundException;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
@@ -26,8 +27,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.security.auth.login.AccountNotFoundException;
-import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -62,6 +61,8 @@ public class LibraryController {
         return book;
     }
 
+    // TODO: only ADMIN
+    // TODO: ----------
     @ApiOperation(value = "Get the current owners of a book (who owns on-loan book items)", tags = {"library"})
     @GetMapping("/v1/books/{isbn}/accounts")
     public List<AccountDTO> getOwnersByBook(@PathVariable("isbn") String isbn)
@@ -91,6 +92,14 @@ public class LibraryController {
         libraryService.deleteBookByIsbn(isbn);
     }
 
+    @ApiOperation(value = "Delete a book item by its ISBN and book item code", tags = {"library"})
+    @DeleteMapping("/v1/books/{isbn}/items/{code}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteBookByISBNAndItemCode(@PathVariable("isbn") String isbn, @PathVariable("code") String code) throws BookConflictException, BookNotFoundException {
+        LOG.info("Calling delete book by ISBN {} and item code {}", isbn, code);
+        libraryService.deleteBookItemByIsbnAndCode(isbn, code);
+    }
+
     @ApiOperation(value = "Get the available items of a book by its ISBN", tags = {"library"})
     @GetMapping("/v1/books/{isbn}/available-items")
     public BookItemsDTO getAvailablBookItemsByISBN(@PathVariable String isbn)
@@ -105,10 +114,19 @@ public class LibraryController {
     @PostMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
-        throws BookNotFoundException, AccountNotFoundException, BookConflictException {
+        throws BookNotFoundException, BookConflictException, com.training.librarymanagement.exceptions.AccountNotFoundException {
 
         LOG.info("Calling reservation of a book by ISBN {} and for the account {}", isbn, accountId);
         libraryService.reserveBook(isbn, accountId, reservation);
+    }
+
+    @ApiOperation(value = "Delete a reservation of a book by its ISBN", tags = {"library"})
+    @DeleteMapping("/v1/books/{isbn}/account/{id}/reserve")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void deleteReservationBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId) {
+
+        LOG.info("Calling delete reservation of a book by ISBN {} and for the account {}", isbn, accountId);
+        libraryService.deleteBookReservation(isbn, accountId);
     }
 
     @ApiOperation(value = "Return a book by its ISBN", tags = {"library"})

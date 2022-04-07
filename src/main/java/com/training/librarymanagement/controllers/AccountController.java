@@ -47,6 +47,8 @@ public class AccountController {
         accountService.createAccount(accountToCreate);
     }
 
+    // TODO: only ADMIN
+    // TODO: ----------
     @ApiOperation(value = "Get the reserved books by account id", tags = {"account"})
     @GetMapping("/v1/accounts/{id}/books")
     public List<BookDTO> getBooksOwnershipByAccount(@PathVariable("id") String accountId) throws AccountNotFoundException {

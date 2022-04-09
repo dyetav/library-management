@@ -6,3 +6,11 @@
 - probably it is possible to call /reserve to push the status to RESERVED and /checkout to push the status to ONLOAN (the
 customer takes the book with him)
 - write tests on RESERVED and ONLOAN status
+
+
+
+
+
+BEST PRACTISES:
+- for a post endpoint what to put as input dto ? For the book, do we put the author id or the complete object to search
+and eventually create ?

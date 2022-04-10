@@ -12,19 +12,17 @@ public class ReservationInputDTO {
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date wishedEndDate;
 
-    public Date getWishedStartDate() {
-        return wishedStartDate;
+    public ReservationInputDTO(Date startDate, Date endDate) {
+        this.wishedEndDate = endDate;
+        this.wishedStartDate = startDate;
     }
 
-    public void setWishedStartDate(Date wishedStartDate) {
-        this.wishedStartDate = wishedStartDate;
+    public Date getWishedStartDate() {
+        return wishedStartDate;
     }
 
     public Date getWishedEndDate() {
         return wishedEndDate;
     }
 
-    public void setWishedEndDate(Date wishedEndDate) {
-        this.wishedEndDate = wishedEndDate;
-    }
 }

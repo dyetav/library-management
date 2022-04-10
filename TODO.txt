@@ -1,12 +1,8 @@
 7/4/2022
 
 - delete a reservation, only if the book is in RESERVED status
-- create and manage the RESERVED status (Availability)
-- it should be possible to reserve a book for a different start date
-- probably it is possible to call /reserve to push the status to RESERVED and /checkout to push the status to ONLOAN (the
-customer takes the book with him)
+- in case of /reserve (reservation, and not checkout), we have to check the wishedEndDate to ensure that there is no overlap
 - write tests on RESERVED and ONLOAN status
-
 
 
 

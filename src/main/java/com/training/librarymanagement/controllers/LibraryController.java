@@ -114,10 +114,20 @@ public class LibraryController {
     @PostMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
-        throws BookNotFoundException, BookConflictException, com.training.librarymanagement.exceptions.AccountNotFoundException {
+        throws BookNotFoundException, BookConflictException, AccountNotFoundException {
 
         LOG.info("Calling reservation of a book by ISBN {} and for the account {}", isbn, accountId);
         libraryService.reserveBook(isbn, accountId, reservation);
+    }
+
+    @ApiOperation(value = "Checkout a book by its ISBN", tags = {"library"})
+    @PostMapping("/v1/books/{isbn}/account/{id}/checkout")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void checkoutBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId)
+        throws BookNotFoundException, AccountNotFoundException {
+
+        LOG.info("Calling checkout of a book by ISBN {} and for the account {}", isbn, accountId);
+        libraryService.checkout(isbn, accountId);
     }
 
     @ApiOperation(value = "Delete a reservation of a book by its ISBN", tags = {"library"})

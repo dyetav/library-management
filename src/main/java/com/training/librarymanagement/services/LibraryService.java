@@ -17,12 +17,14 @@ import com.training.librarymanagement.exceptions.AccountNotFoundException;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
+import com.training.librarymanagement.exceptions.ReservationNotFoundException;
 import com.training.librarymanagement.repositories.AccountRepository;
 import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.BookReservationRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
 import com.training.librarymanagement.utils.AccountMapper;
+import com.training.librarymanagement.utils.DateUtils;
 import com.training.librarymanagement.utils.LibraryMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,11 +97,29 @@ public class LibraryService {
     public void deleteBookByIsbn(String isbn) throws BookConflictException, BookNotFoundException {
         Book book = libraryRepository.findById(isbn).orElseThrow(BookNotFoundException::new);
         if (!CollectionUtils.isEmpty(book.getItems())) {
+            LOG.error("[LIBRARY] Not possible to delete book {}: items not deleted", isbn);
             throw new BookConflictException("Not possible to delete book: items not deleted");
         }
         libraryRepository.delete(book);
     }
 
+    /**
+     * Reservation of a book, by creating a reservation booking
+     * Status of the Availability will be moved from AVAILABLE to RESERVED
+     * Reservation can also be immediate: Availability moved from AVAILABLE to ONLOAN
+     *
+     * Reservation info:
+     * - NO DATES: member is checkouting
+     * - NO START DATE: member is checkouting
+     * - NO END DATE: applying default reservation days
+     *
+     * @param isbn code of the book
+     * @param accountId the account id of the member
+     * @param reservationInput wished dates for the reservation
+     * @throws BookNotFoundException
+     * @throws AccountNotFoundException
+     * @throws BookConflictException
+     */
     public void reserveBook(String isbn, String accountId, ReservationInputDTO reservationInput) throws BookNotFoundException, AccountNotFoundException, BookConflictException {
         Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
         Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException());
@@ -109,7 +129,7 @@ public class LibraryService {
 
         boolean isBookAlreadyReserved = reservedBookItems.stream().anyMatch(b -> b.getBook().getISBN().equalsIgnoreCase(isbn));
         if (isBookAlreadyReserved) {
-            LOG.error("Book withs ISBN {} already reserved by account {}", isbn, accountId);
+            LOG.error("[LIBRARY] Book withs ISBN {} already reserved by account {}", isbn, accountId);
             throw new BookConflictException("Book already reserved");
         }
 
@@ -117,28 +137,58 @@ public class LibraryService {
         if (isAvailable) {
             Set<BookItem> availableBookItems = bookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toSet());
             BookItem pickABook = availableBookItems.stream().findAny().get();
-            pickABook.setAvailablity(Availability.ON_LOAN);
-            pickABook = itemRepository.save(pickABook);
+
             BookReservation reservation = new BookReservation();
             reservation.setAccount(account);
             reservation.setBookItem(pickABook);
 
+            if (DateUtils.isCheckouting(reservationInput)) {
+                reservation.setStartBookingDate(Date.from(Instant.now()));
+                pickABook.setAvailablity(Availability.ON_LOAN);
+            } else {
+                reservation.setStartBookingDate(reservationInput.getWishedStartDate());
+                pickABook.setAvailablity(Availability.RESERVED);
+            }
+
+            Date endDefaultDate = Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS));
             if (reservationInput != null) {
-                reservation.setStartBookingDate(Optional.ofNullable(reservationInput.getWishedStartDate()).orElse(Date.from(Instant.now())));
                 reservation.setEndBookingDate(
                     Optional
                         .ofNullable(reservationInput.getWishedEndDate())
-                        .orElse(Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS)))
-                );
+                        .orElse(endDefaultDate));
             } else {
-                reservation.setStartBookingDate(Date.from(Instant.now()));
-                reservation.setEndBookingDate(null);
+                reservation.setEndBookingDate(endDefaultDate);
             }
+
+            itemRepository.save(pickABook);
 
             bookReservationRepository.save(reservation);
         } else {
             LOG.error("Book withs ISBN {} not available for account {}", isbn, accountId);
             throw new BookConflictException("Book not available");
+        }
+    }
+
+    /**
+     * Checkout of the reserved book
+     * The status of the Availability will be moved from RESERVED to ONLOAN
+     *
+     * @param isbn
+     * @param accountId
+     */
+    public void checkout(String isbn, String accountId) throws BookNotFoundException, AccountNotFoundException {
+        libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
+        accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException());
+
+        Set<BookReservation> reservationsByAccountId = bookReservationRepository.findReservationByAccountId(accountId);
+        Optional<BookReservation> reservationOpt = reservationsByAccountId.stream().filter(r -> r.getBookItem().getBook().getISBN().equals(isbn)).findFirst();
+        if (reservationOpt.isPresent()) {
+            BookReservation reservation = reservationOpt.get();
+            reservation.getBookItem().setAvailablity(Availability.ON_LOAN);
+            bookReservationRepository.save(reservation);
+        } else {
+            LOG.error("Reservation not found for Book {} and Account {}", isbn, accountId);
+            throw new ReservationNotFoundException("Reservation not found");
         }
     }
 
@@ -156,6 +206,16 @@ public class LibraryService {
         return AccountMapper.toDTOs(owners);
     }
 
+    /**
+     * Return the book
+     * The status of the Availability will be moved from ONLOAN to AVAILABLE
+     *
+     * @param isbn the code of the book
+     * @param accountId the account id of the member
+     * @param returnInput information about the return: return date
+     * @throws BookNotFoundException
+     * @throws AccountNotFoundException
+     */
     public void returnBook(String isbn, String accountId, ReturnBookDTO returnInput) throws BookNotFoundException, AccountNotFoundException {
         libraryRepository.findById(isbn).orElseThrow(BookNotFoundException::new);
         accountRepository.findById(accountId).orElseThrow(AccountNotFoundException::new);

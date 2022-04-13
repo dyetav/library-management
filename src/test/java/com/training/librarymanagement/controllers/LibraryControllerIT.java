@@ -462,6 +462,76 @@ public class LibraryControllerIT extends CommonTestUtils {
     }
 
     @Test
+    public void testReturnBook_Fail_NoReturnForReservedBook() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        createItem("YYY", book);
+        createItem("ZZZ", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        ReservationInputDTO reservationInputDTO = new ReservationInputDTO(
+            Date.from(Instant.now().plus(1L, ChronoUnit.DAYS)),
+            Date.from(Instant.now().plus(5L, ChronoUnit.DAYS))
+        );
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .body(reservationInputDTO)
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+
+        Set<BookItem> initialBookItems = itemRepository.findByBook(book);
+        assertEquals(1, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.RESERVED)).count());
+        assertEquals(2, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).count());
+
+        ReturnBookDTO returnBook = new ReturnBookDTO();
+        returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .body(returnBook)
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/return")
+            .then().assertThat().statusCode(409);
+
+        initialBookItems = itemRepository.findByBook(book);
+        assertEquals(1, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.RESERVED)).count());
+        assertEquals(2, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).count());
+
+        List<Fine> fines = fineRepository.findAll();
+        assertEquals(0, fines.size());
+    }
+
+    @Test
+    public void testReturnBook_Fail_NoBookReservation() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        createItem("YYY", book);
+        createItem("ZZZ", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+
+        Set<BookItem> initialBookItems = itemRepository.findByBook(book);
+        assertEquals(0, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.RESERVED)).count());
+        assertEquals(3, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).count());
+
+        ReturnBookDTO returnBook = new ReturnBookDTO();
+        returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .body(returnBook)
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/return")
+            .then().assertThat().statusCode(404);
+
+        initialBookItems = itemRepository.findByBook(book);
+        assertEquals(0, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.RESERVED)).count());
+        assertEquals(3, initialBookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).count());
+
+        List<Fine> fines = fineRepository.findAll();
+        assertEquals(0, fines.size());
+    }
+
+    @Test
     public void testReturnBook_WithFineApplication_Success() {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
@@ -542,6 +612,22 @@ public class LibraryControllerIT extends CommonTestUtils {
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/return")
             .then().assertThat().statusCode(404);
 
+    }
+
+    @Test
+    public void testReturnBook_BookReservationNotFound() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        ReturnBookDTO returnBook = new ReturnBookDTO();
+        returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN()).pathParam("id", "NOT_EXISTING_ACCOUNT")
+            .body(returnBook)
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/return")
+            .then().assertThat().statusCode(404);
     }
 
     @Test
@@ -653,8 +739,64 @@ public class LibraryControllerIT extends CommonTestUtils {
     }
 
     @Test
-    public void testDeleteReservationByBookAndAccount_Fail_BookOrAccountNotExisting() {
-        fail();
+    public void testDeleteReservation_Fail_ReservationOnLoan() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+
+        Optional<Book> reservedBookOpt = libraryRepository.findById(book.getISBN());
+        assertTrue(reservedBookOpt.isPresent());
+        Book reservedBook = reservedBookOpt.get();
+        Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
+        assertEquals(1, bookItems.size());
+        List<BookItem> reservedItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
+        assertEquals(0, reservedItems.size());
+        List<BookItem> onloanItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
+        assertEquals(1, onloanItems.size());
+        List<BookItem> availableItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toList());
+        assertEquals(0, availableItems.size());
+
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().delete("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(409);
+
+        bookItems = itemRepository.findByBook(reservedBook);
+        assertEquals(1, bookItems.size());
+        reservedItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
+        assertEquals(0, reservedItems.size());
+        onloanItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
+        assertEquals(1, onloanItems.size());
+        availableItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toList());
+        assertEquals(0, availableItems.size());
+    }
+
+    @Test
+    public void testDeleteReservationByBookAndAccount_Fail_AccountNotExisting() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN()).pathParam("id", "NOT_EXISTING_ACCOUNT")
+            .contentType(ContentType.JSON).expect()
+            .when().delete("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(404);
+    }
+
+    @Test
+    public void testDeleteReservationByBookAndAccount_Fail_BookNotExisting() {
+        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        RestAssured.given().port(port)
+            .pathParam("isbn", "NOT_EXISTING_BOOK").pathParam("id", member.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().delete("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(404);
     }
 
 }

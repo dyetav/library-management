@@ -3,10 +3,10 @@ package com.training.librarymanagement.exceptions;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@ResponseStatus(HttpStatus.NOT_FOUND)
-public class ReservationNotFoundException extends RuntimeException {
+@ResponseStatus(HttpStatus.CONFLICT)
+public class ReservationConflictException extends RuntimeException {
 
-    public ReservationNotFoundException(String message) {
+    public ReservationConflictException(String message) {
         super(message);
     }
 }

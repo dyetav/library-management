@@ -133,7 +133,8 @@ public class LibraryController {
     @ApiOperation(value = "Delete a reservation of a book by its ISBN", tags = {"library"})
     @DeleteMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public void deleteReservationBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId) {
+    public void deleteReservationBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId)
+        throws BookNotFoundException, AccountNotFoundException {
 
         LOG.info("Calling delete reservation of a book by ISBN {} and for the account {}", isbn, accountId);
         libraryService.deleteBookReservation(isbn, accountId);

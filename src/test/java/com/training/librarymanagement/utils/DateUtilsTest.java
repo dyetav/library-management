@@ -35,9 +35,6 @@ public class DateUtilsTest {
         reservationInput = new ReservationInputDTO(Date.from(Instant.now().plus(1L, ChronoUnit.DAYS)), Date.from(Instant.now().plus(2L, ChronoUnit.DAYS)));
         assertFalse(DateUtils.isCheckouting(reservationInput));
 
-        reservationInput = new ReservationInputDTO(Date.from(Instant.now().plus(1L, ChronoUnit.HOURS)), Date.from(Instant.now().plus(2L, ChronoUnit.DAYS)));
-        assertTrue(DateUtils.isCheckouting(reservationInput));
-
         Date startDate = Date.from(LocalDateTime.now().atZone(ZoneId.of("UTC")).plus(1L, ChronoUnit.DAYS).with(LocalTime.MIN).toInstant());
         Date endDate = Date.from(Instant.now().plus(2L, ChronoUnit.DAYS));
         reservationInput = new ReservationInputDTO(startDate, endDate);

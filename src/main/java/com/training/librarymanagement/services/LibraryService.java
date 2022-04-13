@@ -17,6 +17,7 @@ import com.training.librarymanagement.exceptions.AccountNotFoundException;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
+import com.training.librarymanagement.exceptions.ReservationConflictException;
 import com.training.librarymanagement.exceptions.ReservationNotFoundException;
 import com.training.librarymanagement.repositories.AccountRepository;
 import com.training.librarymanagement.repositories.AuthorRepository;
@@ -221,23 +222,34 @@ public class LibraryService {
         accountRepository.findById(accountId).orElseThrow(AccountNotFoundException::new);
         LocalDateTime returnDate = returnInput.getReturnDate();
         Set<BookReservation> reservationsByAccount = bookReservationRepository.findReservationByAccountId(accountId);
-        BookReservation reservationTarget = reservationsByAccount.stream()
+        Optional<BookReservation> reservationTargetOpt = reservationsByAccount.stream()
             .filter(br -> br.getBookItem().getBook().getISBN().equalsIgnoreCase(isbn))
-            .findFirst().get();
-        if (returnDate == null) {
-            reservationTarget.setEndBookingDate(new Date());
+            .findFirst();
+        if (reservationTargetOpt.isPresent()) {
+            BookReservation reservationTarget = reservationTargetOpt.get();
+            BookItem bookItem = reservationTarget.getBookItem();
+            if (bookItem.getAvailablity().equals(Availability.ON_LOAN)) {
+                if (returnDate == null) {
+                    reservationTarget.setEndBookingDate(new Date());
+                } else {
+                    reservationTarget.setEndBookingDate(Date.from(returnDate.atZone(ZoneId.systemDefault()).toInstant()));
+                }
+                // make the book item available
+                reservationTarget.getBookItem().setAvailablity(Availability.AVAILABLE);
+                reservationTarget = bookReservationRepository.save(reservationTarget);
+
+                // apply fine if any
+                boolean outOfTime = isReservationOutOfTime(reservationTarget);
+                if (outOfTime) {
+                    fineService.createFine(isbn, accountId);
+                }
+            } else {
+                LOG.error("Return book {} for account {} impossible: book not on loan");
+                throw new ReservationConflictException("Return book impossible: book not on loan");
+            }
         } else {
-            reservationTarget.setEndBookingDate(Date.from(returnDate.atZone(ZoneId.systemDefault()).toInstant()));
-        }
-
-        // make the book item available
-        reservationTarget.getBookItem().setAvailablity(Availability.AVAILABLE);
-        reservationTarget = bookReservationRepository.save(reservationTarget);
-
-        // apply fine if any
-        boolean outOfTime = isReservationOutOfTime(reservationTarget);
-        if (outOfTime) {
-            fineService.createFine(isbn, accountId);
+            LOG.error("Return book {} for account {} impossible: reservation not found");
+            throw new ReservationNotFoundException("Return book impossible: reservation not found");
         }
     }
 
@@ -254,8 +266,27 @@ public class LibraryService {
         }
     }
 
-    public void deleteBookReservation(String isbn, String accountId) {
-
+    public void deleteBookReservation(String isbn, String accountId) throws BookNotFoundException, AccountNotFoundException {
+        libraryRepository.findById(isbn).orElseThrow(BookNotFoundException::new);
+        accountRepository.findById(accountId).orElseThrow(AccountNotFoundException::new);
+        Set<BookReservation> reservationsByAccount = bookReservationRepository.findReservationByAccountId(accountId);
+        Optional<BookReservation> reservationTargetOpt = reservationsByAccount.stream()
+            .filter(br -> br.getBookItem().getBook().getISBN().equalsIgnoreCase(isbn))
+            .findFirst();
+        if (reservationTargetOpt.isPresent()) {
+            BookReservation bookReservation = reservationTargetOpt.get();
+            BookItem bookItem = bookReservation.getBookItem();
+            if (bookItem.getAvailablity().equals(Availability.ON_LOAN)) {
+                throw new ReservationConflictException("Impossible to delete the reservation: book item on loan");
+            } else {
+                bookItem.setAvailablity(Availability.AVAILABLE);
+                itemRepository.save(bookItem);
+                bookReservationRepository.delete(bookReservation);
+            }
+        } else {
+            LOG.error("Reservation not found for book {} and account {}: impossible to delete reservation", isbn, accountId);
+            throw new ReservationNotFoundException("Reservation not found: impossible to delete reservation");
+        }
     }
 
     private boolean isReservationOutOfTime(BookReservation reservationTarget) {

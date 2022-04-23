@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith(value = SpringExtension.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -90,6 +89,9 @@ public class LibraryControllerIT extends CommonTestUtils {
 
         List<BookDTO> bookList = Arrays.asList(books);
         assertEquals(2, bookList.size());
+        List<String> isbns = bookList.stream().map(BookDTO::getISBN).collect(Collectors.toList());
+        assertTrue(isbns.contains("DEF_456"));
+        assertTrue(isbns.contains("ABC_123"));
     }
 
     @Test
@@ -711,12 +713,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        List<BookItem> reservedItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
-        assertEquals(1, reservedItems.size());
-        List<BookItem> onloanItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
-        assertEquals(0, onloanItems.size());
-        List<BookItem> availableItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toList());
-        assertEquals(0, availableItems.size());
+        checkNumberOfItems(bookItems, 0, 0, 1);
 
         RestAssured.given().port(port)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
@@ -729,12 +726,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         reservedBook = reservedBookOpt.get();
         bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        onloanItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
-        assertEquals(0, onloanItems.size());
-        reservedItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
-        assertEquals(0, reservedItems.size());
-        availableItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toList());
-        assertEquals(1, availableItems.size());
+        checkNumberOfItems(bookItems, 1, 0, 0);
 
     }
 
@@ -755,12 +747,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        List<BookItem> reservedItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
-        assertEquals(0, reservedItems.size());
-        List<BookItem> onloanItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
-        assertEquals(1, onloanItems.size());
-        List<BookItem> availableItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toList());
-        assertEquals(0, availableItems.size());
+        checkNumberOfItems(bookItems, 0, 1, 0);
 
         RestAssured.given().port(port)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
@@ -770,12 +757,7 @@ public class LibraryControllerIT extends CommonTestUtils {
 
         bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        reservedItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
-        assertEquals(0, reservedItems.size());
-        onloanItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
-        assertEquals(1, onloanItems.size());
-        availableItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toList());
-        assertEquals(0, availableItems.size());
+        checkNumberOfItems(bookItems, 0, 1, 0);
     }
 
     @Test

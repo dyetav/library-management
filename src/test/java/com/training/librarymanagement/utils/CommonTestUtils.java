@@ -18,7 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CommonTestUtils {
 
@@ -97,6 +101,17 @@ public class CommonTestUtils {
         author.setFirstName(firstName);
         author.setLastName(lastName);
         return authorRepository.save(author);
+    }
+
+    //////////////////////////      ASSERTS      ///////////////////////////////////
+
+    protected void checkNumberOfItems(Set<BookItem> bookItems, int howManyAvailable, int howManyOnLoan, int howManyReserved) {
+        List<BookItem> reservedItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
+        assertEquals(howManyReserved, reservedItems.size());
+        List<BookItem> onloanItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
+        assertEquals(howManyOnLoan, onloanItems.size());
+        List<BookItem> availableItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toList());
+        assertEquals(howManyAvailable, availableItems.size());
     }
 
 }

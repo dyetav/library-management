@@ -29,7 +29,7 @@ public class BookItem {
     private BigDecimal price;
 
     @OneToMany(mappedBy = "bookItem")
-    private Set<BookReservation> bookReservations;
+    private Set<BookReservation> bookReservations = new HashSet<>();
 
     @ManyToOne(fetch= FetchType.EAGER)
     private Book book;

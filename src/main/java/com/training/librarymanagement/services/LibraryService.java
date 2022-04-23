@@ -27,9 +27,11 @@ import com.training.librarymanagement.repositories.LibraryRepository;
 import com.training.librarymanagement.utils.AccountMapper;
 import com.training.librarymanagement.utils.DateUtils;
 import com.training.librarymanagement.utils.LibraryMapper;
+import com.training.librarymanagement.utils.LibraryUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -134,7 +136,11 @@ public class LibraryService {
             throw new BookConflictException("Book already reserved");
         }
 
-        boolean isAvailable = bookItems.stream().anyMatch(b -> b.getAvailablity().equals(Availability.AVAILABLE));
+        reservationInput = Optional.ofNullable(reservationInput).orElse(new ReservationInputDTO(
+            Date.from(Instant.now()),
+            Date.from(Instant.now().plus(conf.getReturnDays(), ChronoUnit.DAYS))
+        ));
+        boolean isAvailable = LibraryUtils.isBookAvailable(bookItems, reservationInput);
         if (isAvailable) {
             Set<BookItem> availableBookItems = bookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toSet());
             BookItem pickABook = availableBookItems.stream().findAny().get();
@@ -152,14 +158,10 @@ public class LibraryService {
             }
 
             Date endDefaultDate = Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS));
-            if (reservationInput != null) {
-                reservation.setEndBookingDate(
-                    Optional
-                        .ofNullable(reservationInput.getWishedEndDate())
-                        .orElse(endDefaultDate));
-            } else {
-                reservation.setEndBookingDate(endDefaultDate);
-            }
+            reservation.setEndBookingDate(
+                Optional
+                    .ofNullable(reservationInput.getWishedEndDate())
+                    .orElse(endDefaultDate));
 
             itemRepository.save(pickABook);
 

@@ -1,5 +1,6 @@
 package com.training.librarymanagement.entities;
 
+import com.training.librarymanagement.enums.Availability;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.Column;
@@ -29,6 +30,8 @@ public class BookReservation {
     @ManyToOne
     @JoinColumn(name = "book_code")
     private BookItem bookItem;
+
+    private Availability availability;
 
     public String getId() {
         return id;
@@ -68,5 +71,13 @@ public class BookReservation {
 
     public void setBookItem(BookItem bookItem) {
         this.bookItem = bookItem;
+    }
+
+    public Availability getAvailability() {
+        return availability;
+    }
+
+    public void setAvailability(Availability availability) {
+        this.availability = availability;
     }
 }

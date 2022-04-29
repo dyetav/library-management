@@ -18,6 +18,7 @@ import com.training.librarymanagement.utils.CommonTestUtils;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -46,6 +47,11 @@ public class LibraryControllerIT extends CommonTestUtils {
 
     @LocalServerPort
     private int port;
+
+    @BeforeEach
+    public void setup() {
+        super.clearAllRepositories();
+    }
 
     @AfterEach
     public void tearDown() {
@@ -278,11 +284,26 @@ public class LibraryControllerIT extends CommonTestUtils {
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
         assertEquals(2, initialBookItems.size());
 
+        Account member1 = createAccount("dietav", "Diego", "Tavolaro", true);
+        Account member2 = createAccount("giutav", "Giulia", "Tavolaro", true);
+        Account member3 = createAccount("elokla", "Elodie", "Klauder", true);
 
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
+        // booking two items, the third reservation fails
         RestAssured.given().port(port)
             .pathParam("isbn", book.getISBN())
-            .pathParam("id", member.getId())
+            .pathParam("id", member1.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN())
+            .pathParam("id", member2.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN())
+            .pathParam("id", member3.getId())
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(409);
@@ -292,12 +313,12 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(2, bookItems.size());
-        List<BookItem> reservedItems = bookItems.stream().filter(i -> !i.getBookReservations().isEmpty()).collect(Collectors.toList());
-        assertEquals(2, reservedItems.size());
-        assertEquals(2, reservedItems.stream().flatMap(bi -> bi.getBookReservations().stream()).filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
-        List<BookItem> availableItems = bookItems.stream().filter(i -> i.getBookReservations().isEmpty()).collect(Collectors.toList());
-        assertEquals(0, availableItems.size());
-
+        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member1);
+        Set<BookReservation> resMember2 = bookReservationRepository.findByAccount(member2);
+        assertEquals(1, resMember1.size());
+        assertEquals(1, resMember2.size());
+        assertTrue(resMember1.stream().findFirst().get().getAvailability().equals(Availability.ON_LOAN));
+        assertTrue(resMember2.stream().findFirst().get().getAvailability().equals(Availability.ON_LOAN));
     }
 
     @Test
@@ -731,7 +752,8 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        checkNumberOfItems(bookItems, 0, 0, 1);
+        Set<BookReservation> reservations = bookReservationRepository.findByBookItem(bookItems.stream().findFirst().get());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.RESERVED)).count());
 
         RestAssured.given().port(port)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
@@ -744,7 +766,8 @@ public class LibraryControllerIT extends CommonTestUtils {
         reservedBook = reservedBookOpt.get();
         bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        checkNumberOfItems(bookItems, 1, 0, 0);
+        reservations = bookReservationRepository.findByBookItem(bookItems.stream().findFirst().get());
+        assertEquals(0, reservations.size());
 
     }
 
@@ -765,7 +788,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        checkNumberOfItems(bookItems, 0, 1, 0);
+        assertEquals(1, bookItems.stream().findFirst().get().getBookReservations().stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
 
         RestAssured.given().port(port)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
@@ -775,7 +798,7 @@ public class LibraryControllerIT extends CommonTestUtils {
 
         bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        checkNumberOfItems(bookItems, 0, 1, 0);
+        assertEquals(1, bookItems.stream().findFirst().get().getBookReservations().stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
     }
 
     @Test

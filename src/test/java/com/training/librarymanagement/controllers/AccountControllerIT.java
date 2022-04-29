@@ -94,7 +94,7 @@ public class AccountControllerIT extends CommonTestUtils {
         Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
-        createItem("XXX", book, Availability.AVAILABLE);
+        createItem("XXX", book);
 
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .contentType(ContentType.JSON).expect()
@@ -102,7 +102,7 @@ public class AccountControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(202);
 
         Book book2 = createBook("BBB_123", author, "Independence Day");
-        createItem("YYY", book2, Availability.AVAILABLE);
+        createItem("YYY", book2);
 
         BookDTO[] booksArray = RestAssured.given().port(port).pathParam("id", member.getId())
             .expect().contentType(ContentType.JSON)

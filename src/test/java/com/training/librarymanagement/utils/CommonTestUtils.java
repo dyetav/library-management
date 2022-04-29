@@ -47,7 +47,6 @@ public class CommonTestUtils {
         libraryRepository.deleteAll();
         authorRepository.deleteAll();
         fineRepository.deleteAll();
-        ;
     }
 
     protected Account createAccount(String username, String firstName, String lastName, Boolean isActive) {

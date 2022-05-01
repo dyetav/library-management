@@ -232,7 +232,7 @@ public class LibraryService {
             .findFirst();
         if (reservationTargetOpt.isPresent()) {
             BookReservation reservationTarget = reservationTargetOpt.get();
-            if (reservationTarget.equals(Availability.ON_LOAN)) {
+            if (reservationTarget.getAvailability().equals(Availability.ON_LOAN)) {
                 if (returnDate == null) {
                     reservationTarget.setEndBookingDate(new Date());
                 } else {
@@ -278,7 +278,7 @@ public class LibraryService {
             .findFirst();
         if (reservationTargetOpt.isPresent()) {
             BookReservation bookReservation = reservationTargetOpt.get();
-            if (bookReservation.equals(Availability.ON_LOAN)) {
+            if (bookReservation.getAvailability().equals(Availability.ON_LOAN)) {
                 throw new ReservationConflictException("Impossible to delete the reservation: book item on loan");
             } else {
                 bookReservationRepository.delete(bookReservation);

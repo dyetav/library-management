@@ -241,14 +241,10 @@ public class LibraryControllerIT extends CommonTestUtils {
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(2, bookItems.size());
 
-        List<BookItem> notAvailableBookItems = bookItems.stream().filter(bi -> !bi.getBookReservations().isEmpty()).collect(Collectors.toList());
-        assertEquals(1, notAvailableBookItems.size());
-        Set<BookReservation> reservations = notAvailableBookItems.get(0).getBookReservations();
+        List<BookReservation> reservations = bookReservationRepository.findAll();
         assertEquals(1, reservations.size());
-        assertEquals(Availability.ON_LOAN, reservations.stream().findFirst().get().getAvailability());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
         assertEquals(new BigDecimal("15.00"), reservations.stream().findFirst().get().getBookItem().getPrice());
-        List<BookItem> availableItems = bookItems.stream().filter(i -> i.getBookReservations().isEmpty()).collect(Collectors.toList());
-        assertEquals(1, availableItems.size());
 
         BookReservation reservation = reservations.stream().findFirst().get();
 
@@ -344,11 +340,9 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(2, bookItems.size());
-        List<BookItem> reservedItems = bookItems.stream().filter(i -> !i.getBookReservations().isEmpty()).collect(Collectors.toList());
-        assertEquals(1, reservedItems.size());
-        assertEquals(1, reservedItems.get(0).getBookReservations().stream().filter(br -> br.getAvailability().equals(Availability.RESERVED)).count());
-        List<BookItem> availableItems = bookItems.stream().filter(i -> i.getBookReservations().isEmpty()).collect(Collectors.toList());
-        assertEquals(1, availableItems.size());
+        List<BookReservation> reservations = bookReservationRepository.findAll();
+        assertEquals(1, reservations.size());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.RESERVED)).count());
 
         RestAssured.given().port(port)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
@@ -362,11 +356,9 @@ public class LibraryControllerIT extends CommonTestUtils {
         reservedBook = reservedBookOpt.get();
         bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(2, bookItems.size());
-        reservedItems = bookItems.stream().filter(i -> !i.getBookReservations().isEmpty()).collect(Collectors.toList());
-        assertEquals(1, reservedItems.size());
-        assertEquals(1, reservedItems.get(0).getBookReservations().stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
-        availableItems = bookItems.stream().filter(i -> i.getBookReservations().isEmpty()).collect(Collectors.toList());
-        assertEquals(1, availableItems.size());
+        reservations = bookReservationRepository.findAll();
+        assertEquals(1, reservations.size());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
 
     }
 
@@ -465,12 +457,10 @@ public class LibraryControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(202);
 
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
-        assertEquals(1, initialBookItems.stream()
-            .filter(b -> !b.getBookReservations().isEmpty())
-            .flatMap(bi -> bi.getBookReservations().stream())
-            .filter(br -> br.getAvailability().equals(Availability.ON_LOAN))
-            .count());
-        assertEquals(2, initialBookItems.stream().filter(b -> b.getBookReservations().isEmpty()).count());
+        assertEquals(3, initialBookItems.size());
+        List<BookReservation> reservations = bookReservationRepository.findAll();
+        assertEquals(1, reservations.size());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
 
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
@@ -482,12 +472,8 @@ public class LibraryControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(202);
 
         initialBookItems = itemRepository.findByBook(book);
-        assertEquals(0, initialBookItems.stream()
-            .filter(b -> !b.getBookReservations().isEmpty())
-            .flatMap(bi -> bi.getBookReservations().stream())
-            .filter(br -> br.getAvailability().equals(Availability.ON_LOAN))
-            .count());
-        assertEquals(3, initialBookItems.stream().filter(b -> b.getBookReservations().isEmpty()).count());
+        reservations = bookReservationRepository.findAll();
+        assertEquals(0, reservations.size());
 
         List<Fine> fines = fineRepository.findAll();
         assertEquals(0, fines.size());
@@ -513,12 +499,10 @@ public class LibraryControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(202);
 
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
-        assertEquals(1, initialBookItems.stream()
-            .filter(b -> !b.getBookReservations().isEmpty())
-            .flatMap(bi -> bi.getBookReservations().stream())
-            .filter(br -> br.getAvailability().equals(Availability.RESERVED))
-            .count());
-        assertEquals(2, initialBookItems.stream().filter(b -> b.getBookReservations().isEmpty()).count());
+        assertEquals(3, initialBookItems.size());
+        List<BookReservation> reservations = bookReservationRepository.findAll();
+        assertEquals(1, reservations.size());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.RESERVED)).count());
 
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
@@ -530,12 +514,10 @@ public class LibraryControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(409);
 
         initialBookItems = itemRepository.findByBook(book);
-        assertEquals(1, initialBookItems.stream()
-            .filter(b -> !b.getBookReservations().isEmpty())
-            .flatMap(bi -> bi.getBookReservations().stream())
-            .filter(br -> br.getAvailability().equals(Availability.RESERVED))
-            .count());
-        assertEquals(2, initialBookItems.stream().filter(b -> b.getBookReservations().isEmpty()).count());
+        assertEquals(3, initialBookItems.size());
+        reservations = bookReservationRepository.findAll();
+        assertEquals(1, reservations.size());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.RESERVED)).count());
 
         List<Fine> fines = fineRepository.findAll();
         assertEquals(0, fines.size());
@@ -551,7 +533,9 @@ public class LibraryControllerIT extends CommonTestUtils {
         Account member = createAccount("dietav", "Diego", "Tavolaro", true);
 
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
-        assertEquals(3, initialBookItems.stream().filter(b -> b.getBookReservations().isEmpty()).count());
+        assertEquals(3, initialBookItems.size());
+        List<BookReservation> reservations = bookReservationRepository.findAll();
+        assertEquals(0, reservations.size());
 
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
@@ -563,7 +547,9 @@ public class LibraryControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(404);
 
         initialBookItems = itemRepository.findByBook(book);
-        assertEquals(3, initialBookItems.stream().filter(b -> b.getBookReservations().isEmpty()).count());
+        assertEquals(3, initialBookItems.size());
+        reservations = bookReservationRepository.findAll();
+        assertEquals(0, reservations.size());
 
         List<Fine> fines = fineRepository.findAll();
         assertEquals(0, fines.size());
@@ -583,12 +569,9 @@ public class LibraryControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(202);
 
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
-        assertEquals(1, initialBookItems.stream()
-            .filter(b -> !b.getBookReservations().isEmpty())
-            .flatMap(bi -> bi.getBookReservations().stream())
-            .filter(br -> br.getAvailability().equals(Availability.ON_LOAN))
-            .count());
-        assertEquals(2, initialBookItems.stream().filter(b -> b.getBookReservations().isEmpty()).count());
+        List<BookReservation> reservations = bookReservationRepository.findAll();
+        assertEquals(1, reservations.size());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
 
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(12L));
@@ -600,7 +583,8 @@ public class LibraryControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(202);
 
         initialBookItems = itemRepository.findByBook(book);
-        assertEquals(3, initialBookItems.stream().filter(b -> b.getBookReservations().isEmpty()).count());
+        reservations = bookReservationRepository.findAll();
+        assertEquals(0, reservations.size());
 
         List<Fine> fines = fineRepository.findAll();
         assertEquals(1, fines.size());
@@ -788,7 +772,9 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        assertEquals(1, bookItems.stream().findFirst().get().getBookReservations().stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
+        List<BookReservation> reservations = bookReservationRepository.findAll();
+        assertEquals(1, reservations.size());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
 
         RestAssured.given().port(port)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
@@ -798,7 +784,9 @@ public class LibraryControllerIT extends CommonTestUtils {
 
         bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        assertEquals(1, bookItems.stream().findFirst().get().getBookReservations().stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
+        reservations = bookReservationRepository.findAll();
+        assertEquals(1, reservations.size());
+        assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
     }
 
     @Test

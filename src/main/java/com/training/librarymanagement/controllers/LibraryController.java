@@ -68,7 +68,7 @@ public class LibraryController {
     public List<AccountDTO> getOwnersByBook(@PathVariable("isbn") String isbn)
         throws BookNotFoundException {
 
-        LOG.info("Calling get all books");
+        LOG.info("Calling get owners by book with isbn {}", isbn);
         List<AccountDTO> owners = libraryService.getAccountsByBook(isbn);
         return owners;
     }
@@ -79,7 +79,7 @@ public class LibraryController {
     public BookDTO createBook(@RequestBody BookInputDTO input)
         throws AuthorNotFoundException {
 
-        LOG.info("Callng create book");
+        LOG.info("Callng create book with input {}", input);
         BookDTO createdBook = libraryService.createBook(input);
         return createdBook;
     }

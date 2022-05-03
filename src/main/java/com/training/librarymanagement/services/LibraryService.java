@@ -165,7 +165,7 @@ public class LibraryService {
 
             bookReservationRepository.save(reservation);
         } else {
-            LOG.error("Book withs ISBN {} not available for account {}", isbn, accountId);
+            LOG.error("[LIBRARY] Book withs ISBN {} not available for account {}", isbn, accountId);
             throw new BookConflictException("Book not available");
         }
     }
@@ -188,7 +188,7 @@ public class LibraryService {
             reservation.setAvailability(Availability.ON_LOAN);
             bookReservationRepository.save(reservation);
         } else {
-            LOG.error("Reservation not found for Book {} and Account {}", isbn, accountId);
+            LOG.error("[LIBRARY] Reservation not found for Book {} and Account {}", isbn, accountId);
             throw new ReservationNotFoundException("Reservation not found");
         }
     }
@@ -247,11 +247,11 @@ public class LibraryService {
                     fineService.createFine(isbn, accountId);
                 }
             } else {
-                LOG.error("Return book {} for account {} impossible: book not on loan");
+                LOG.error("[LIBRARY] Return book {} for account {} impossible: book not on loan");
                 throw new ReservationConflictException("Return book impossible: book not on loan");
             }
         } else {
-            LOG.error("Return book {} for account {} impossible: reservation not found");
+            LOG.error("[LIBRARY] Return book {} for account {} impossible: reservation not found");
             throw new ReservationNotFoundException("Return book impossible: reservation not found");
         }
     }
@@ -265,6 +265,7 @@ public class LibraryService {
             libraryRepository.save(book);
             itemRepository.delete(bookItemToDelete);
         } else {
+            LOG.error("[LIBRARY] Book item {} of book with isbn {} has already got a reservation: impossible to delete", code, isbn);
             throw new BookConflictException("Book Item to delete has got a reservation");
         }
     }
@@ -279,12 +280,13 @@ public class LibraryService {
         if (reservationTargetOpt.isPresent()) {
             BookReservation bookReservation = reservationTargetOpt.get();
             if (bookReservation.getAvailability().equals(Availability.ON_LOAN)) {
+                LOG.error("[LIBRARY] Book item of book with isbn {} for account {} is on loan: impossible to delete", isbn, accountId);
                 throw new ReservationConflictException("Impossible to delete the reservation: book item on loan");
             } else {
                 bookReservationRepository.delete(bookReservation);
             }
         } else {
-            LOG.error("Reservation not found for book {} and account {}: impossible to delete reservation", isbn, accountId);
+            LOG.error("[LIBRARY] Reservation not found for book {} and account {}: impossible to delete reservation", isbn, accountId);
             throw new ReservationNotFoundException("Reservation not found: impossible to delete reservation");
         }
     }

@@ -43,7 +43,7 @@ public class AccountController {
     @PostMapping("/v1/accounts")
     @ResponseStatus(HttpStatus.CREATED)
     public void createAccount(@RequestBody AccountInputDTO accountToCreate) {
-        LOG.info("Creating an account with the following body: {}", accountToCreate);
+        LOG.info("Creating an account with the following input: {}", accountToCreate);
         accountService.createAccount(accountToCreate);
     }
 

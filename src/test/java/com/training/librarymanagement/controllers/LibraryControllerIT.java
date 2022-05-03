@@ -318,6 +318,91 @@ public class LibraryControllerIT extends CommonTestUtils {
     }
 
     @Test
+    public void testReserveBookByISBN_OnlyOneItem_DifferentMembers_ReservationNotOverlapping() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        Set<BookItem> initialBookItems = itemRepository.findByBook(book);
+        assertEquals(1, initialBookItems.size());
+
+        Account member1 = createAccount("dietav", "Diego", "Tavolaro", true);
+        Account member2 = createAccount("elokla", "Elodie", "Klauder", true);
+        ReservationInputDTO reservationInputDTO = new ReservationInputDTO(
+            Date.from(Instant.now().plus(11L, ChronoUnit.DAYS)),
+            Date.from(Instant.now().plus(16L, ChronoUnit.DAYS))
+        );
+        // booking two items, the third reservation fails
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN())
+            .pathParam("id", member1.getId())
+            .body(reservationInputDTO)
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN())
+            .pathParam("id", member2.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+
+        Optional<Book> reservedBookOpt = libraryRepository.findById(book.getISBN());
+        assertTrue(reservedBookOpt.isPresent());
+        Book reservedBook = reservedBookOpt.get();
+        Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
+        assertEquals(1, bookItems.size());
+        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member1);
+        Set<BookReservation> resMember2 = bookReservationRepository.findByAccount(member2);
+        assertEquals(1, resMember1.size());
+        assertEquals(1, resMember2.size());
+        assertTrue(resMember1.stream().findFirst().get().getAvailability().equals(Availability.RESERVED));
+        assertTrue(resMember2.stream().findFirst().get().getAvailability().equals(Availability.ON_LOAN));
+        assertEquals(2, bookReservationRepository.findAll().size());
+    }
+
+    @Test
+    public void testReserveBookByISBN_OnlyOneItem_DifferentMembers_ReservationOverlapping_SecondMemberError() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book = createBook("AAA_123", author, "Matrix");
+        createItem("XXX", book);
+        Set<BookItem> initialBookItems = itemRepository.findByBook(book);
+        assertEquals(1, initialBookItems.size());
+
+        Account member1 = createAccount("dietav", "Diego", "Tavolaro", true);
+        Account member2 = createAccount("elokla", "Elodie", "Klauder", true);
+        ReservationInputDTO reservationInputDTO = new ReservationInputDTO(
+            Date.from(Instant.now().plus(5L, ChronoUnit.DAYS)),
+            Date.from(Instant.now().plus(16L, ChronoUnit.DAYS))
+        );
+        // booking two items, the third reservation fails
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN())
+            .pathParam("id", member1.getId())
+            .body(reservationInputDTO)
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(202);
+        RestAssured.given().port(port)
+            .pathParam("isbn", book.getISBN())
+            .pathParam("id", member2.getId())
+            .contentType(ContentType.JSON).expect()
+            .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
+            .then().assertThat().statusCode(409);
+
+        Optional<Book> reservedBookOpt = libraryRepository.findById(book.getISBN());
+        assertTrue(reservedBookOpt.isPresent());
+        Book reservedBook = reservedBookOpt.get();
+        Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
+        assertEquals(1, bookItems.size());
+        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member1);
+        Set<BookReservation> resMember2 = bookReservationRepository.findByAccount(member2);
+        assertEquals(1, resMember1.size());
+        assertEquals(0, resMember2.size());
+        assertTrue(resMember1.stream().findFirst().get().getAvailability().equals(Availability.RESERVED));
+        assertEquals(1, bookReservationRepository.findAll().size());
+    }
+
+    @Test
     public void testCheckout_Success() {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
@@ -441,6 +526,14 @@ public class LibraryControllerIT extends CommonTestUtils {
         assertTrue(usernames.contains("dietav"));
         assertTrue(usernames.contains("chicco"));
         assertTrue(usernames.contains("elodie"));
+
+        List<BookReservation> reservations = bookReservationRepository.findAll();
+        assertEquals(3, reservations.size());
+        assertEquals(3, reservations.stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
+        usernames = reservations.stream().map(br -> br.getAccount().getUsername()).collect(Collectors.toList());
+        assertTrue(usernames.contains("dietav"));
+        assertTrue(usernames.contains("chicco"));
+        assertTrue(usernames.contains("elodie"));
     }
 
     @Test
@@ -472,6 +565,7 @@ public class LibraryControllerIT extends CommonTestUtils {
             .then().assertThat().statusCode(202);
 
         initialBookItems = itemRepository.findByBook(book);
+        assertEquals(3, initialBookItems.size());
         reservations = bookReservationRepository.findAll();
         assertEquals(0, reservations.size());
 

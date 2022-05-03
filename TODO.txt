@@ -1,10 +1,12 @@
 7/4/2022
 
-- delete a reservation, only if the book is in RESERVED status
-- in case of /reserve (reservation, and not checkout), we have to check the wishedEndDate to ensure that there is no overlap
-- write tests on RESERVED and ONLOAN status
-- allow reservation of a book even if it is already reserved and if the dates of the booking are not overlapping
-
+- logs
+- security on some endpoints
+- notification management system on reservations
+- payment gateway for fines payment
+- dockerizing
+- kubernetes
+- starting frontend
 
 
 

@@ -13,6 +13,7 @@ import com.training.librarymanagement.utils.LibraryMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -27,6 +28,9 @@ public class AccountService {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     public AccountDTO getAccountById(String id) throws AccountNotFoundException {
         Account account = accountRepository.findById(id).orElseThrow(() -> new AccountNotFoundException());
         return AccountMapper.toDTO(account);
@@ -34,6 +38,7 @@ public class AccountService {
 
     public void createAccount(AccountInputDTO accountToCreate) {
         Account newAccount = AccountMapper.fromDTO(accountToCreate);
+        newAccount.setPassword(passwordEncoder.encode(newAccount.getPassword()));
         accountRepository.save(newAccount);
     }
 
@@ -46,5 +51,10 @@ public class AccountService {
             books.add(LibraryMapper.toDTO(reserved));
         });
         return books;
+    }
+
+    public AccountDTO getAccountByLogin(String username) {
+        Account account = accountRepository.findByUsername(username);
+        return AccountMapper.toDTO(account);
     }
 }

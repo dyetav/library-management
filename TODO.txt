@@ -1,6 +1,11 @@
 7/4/2022
 
 - logs
+- account isActive endpoint (to make an account active)
+- createAccount -> duplicate of signup
+- endpoint to leverage privileges (MEMBER to LIBRARIAN)
+- timezone for expiration on authentication and jwt
+- search endpoint with specifications (filtering)
 - security on some endpoints
 - notification management system on reservations
 - payment gateway for fines payment

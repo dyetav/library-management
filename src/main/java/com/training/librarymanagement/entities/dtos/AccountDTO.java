@@ -1,5 +1,6 @@
 package com.training.librarymanagement.entities.dtos;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
@@ -8,6 +9,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class AccountDTO {
 
     private String username;
+
+    @JsonIgnore
+    private String password;
 
     private String firstName;
 
@@ -19,11 +23,12 @@ public class AccountDTO {
         // NOTHING
     }
 
-    public AccountDTO(String username, String firstName, String lastName, Boolean isActive) {
+    public AccountDTO(String username, String password, String firstName, String lastName, Boolean isActive) {
         this.username = username;
         this.firstName = firstName;
         this.lastName = lastName;
         this.isActive = isActive;
+        this.password = password;
     }
 
     public String getUsername() {
@@ -56,5 +61,13 @@ public class AccountDTO {
 
     public void setActive(Boolean active) {
         isActive = active;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

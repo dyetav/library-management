@@ -32,6 +32,8 @@ public class Account {
     private String firstName;
     private String lastName;
 
+    private String password;
+
     @OneToMany(mappedBy = "account")
     private Set<BookReservation> bookReservation;
 
@@ -84,5 +86,13 @@ public class Account {
 
     public void setFine(Set<Fine> fine) {
         this.fine = fine;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

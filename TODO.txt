@@ -2,7 +2,9 @@
 
 - logs
 - account isActive endpoint (to make an account active)
-- createAccount -> duplicate of signup
+- DONE createAccount -> duplicate of signup
+- tests on security (unit and integration tests)
+- roles over security
 - endpoint to leverage privileges (MEMBER to LIBRARIAN)
 - timezone for expiration on authentication and jwt
 - search endpoint with specifications (filtering)

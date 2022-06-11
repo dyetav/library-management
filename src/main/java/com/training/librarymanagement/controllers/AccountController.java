@@ -39,14 +39,6 @@ public class AccountController {
         return account;
     }
 
-    @ApiOperation(value = "Create an account", tags = {"account"})
-    @PostMapping("/v1/accounts")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void createAccount(@RequestBody AccountInputDTO accountToCreate) {
-        LOG.info("Creating an account with the following input: {}", accountToCreate);
-        accountService.createAccount(accountToCreate);
-    }
-
     // TODO: only ADMIN
     // TODO: ----------
     @ApiOperation(value = "Get the reserved books by account id", tags = {"account"})
@@ -54,6 +46,13 @@ public class AccountController {
     public List<BookDTO> getBooksOwnershipByAccount(@PathVariable("id") String accountId) throws AccountNotFoundException {
         LOG.info("Get the reserved books by account {}", accountId);
         return accountService.getBooksOwnershipByAccount(accountId);
+    }
+
+    @PostMapping("/signup")
+    @ApiOperation(value = "Create a new account by registering it", tags = {"security"})
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createAccount(@RequestBody AccountInputDTO user) {
+        accountService.createAccount(user);
     }
 
 }

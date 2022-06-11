@@ -1,11 +1,13 @@
 package com.training.librarymanagement.filters;
 
+import com.training.librarymanagement.jwt.JwtTokenUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,6 +24,12 @@ public class LibraryJwtVerificationFilter extends OncePerRequestFilter {
 
     private static Logger LOG = LoggerFactory.getLogger(LibraryJwtVerificationFilter.class);
 
+    private JwtTokenUtil jwtTokenUtil;
+
+    public LibraryJwtVerificationFilter(JwtTokenUtil jwtTokenUtil) {
+        this.jwtTokenUtil = jwtTokenUtil;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         final String requestTokenHeader = request.getHeader("Authorization");
@@ -32,22 +40,16 @@ public class LibraryJwtVerificationFilter extends OncePerRequestFilter {
         }
 
         String token = requestTokenHeader.replace("Bearer ", "");
-        String secretKey = "secureKey";
+        String username = jwtTokenUtil.getClaimFromToken(token, Claims::getSubject);
+        if (jwtTokenUtil.validateToken(token, username)) {
+            Authentication authentication = new UsernamePasswordAuthenticationToken(
+                username,
+                null,
+                new ArrayList<>()
+            );
 
-        Jws<Claims> claimsJws = Jwts.parser()
-            .setSigningKey(secretKey)
-            .parseClaimsJws(token);
-
-        Claims body = claimsJws.getBody();
-        String username = body.getSubject();
-
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-            username,
-            null,
-            new ArrayList<>()
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
 
         filterChain.doFilter(request, response);
     }

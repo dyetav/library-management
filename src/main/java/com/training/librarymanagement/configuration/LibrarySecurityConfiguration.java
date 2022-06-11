@@ -2,6 +2,7 @@ package com.training.librarymanagement.configuration;
 
 import com.training.librarymanagement.filters.LibraryAuthenticationFilter;
 import com.training.librarymanagement.filters.LibraryJwtVerificationFilter;
+import com.training.librarymanagement.jwt.JwtTokenUtil;
 import com.training.librarymanagement.jwt.JwtUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -25,14 +26,17 @@ public class LibrarySecurityConfiguration extends WebSecurityConfigurerAdapter {
     @Autowired
     private JwtUserDetailsService userDetailsService;
 
+    @Autowired
+    private JwtTokenUtil jwtTokenUtil;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
             .csrf().disable()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
-                .addFilter(new LibraryAuthenticationFilter(authenticationManager()))
-                .addFilterAfter(new LibraryJwtVerificationFilter(), LibraryAuthenticationFilter.class)
+                .addFilter(new LibraryAuthenticationFilter(authenticationManager(), jwtTokenUtil))
+                .addFilterAfter(new LibraryJwtVerificationFilter(jwtTokenUtil), LibraryAuthenticationFilter.class)
                 .authorizeRequests()
                 .antMatchers("/library-management/signup").permitAll()
                 .anyRequest().authenticated();

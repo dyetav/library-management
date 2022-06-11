@@ -2,10 +2,12 @@ package com.training.librarymanagement.filters;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.training.librarymanagement.jwt.AuthenticationRequest;
+import com.training.librarymanagement.jwt.JwtTokenUtil;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -29,8 +31,11 @@ public class LibraryAuthenticationFilter extends UsernamePasswordAuthenticationF
 
     private AuthenticationManager authenticationManager;
 
-    public LibraryAuthenticationFilter(AuthenticationManager authenticationManager) {
+    private JwtTokenUtil jwtTokenUtil;
+
+    public LibraryAuthenticationFilter(AuthenticationManager authenticationManager, JwtTokenUtil jwtTokenUtil) {
         this.authenticationManager = authenticationManager;
+        this.jwtTokenUtil = jwtTokenUtil;
         setFilterProcessesUrl("/library-management/signin");
     }
 
@@ -56,15 +61,7 @@ public class LibraryAuthenticationFilter extends UsernamePasswordAuthenticationF
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
         LOG.info("Successfully authenticated: username {}", authResult.getName());
-        String key = "secureKey";
-        String token = Jwts.builder()
-            .setExpiration(Date.from(LocalDateTime.now().plus(5, ChronoUnit.MINUTES).toInstant(ZoneOffset.UTC)))
-            .setSubject(authResult.getName())
-            .setIssuedAt(new Date(System.currentTimeMillis()))
-            .signWith(SignatureAlgorithm.HS512, key)
-            .compact();
-
+        String token = jwtTokenUtil.generateToken(authResult.getName());
         response.setHeader("Authorization", "Bearer " + token);
-
     }
 }

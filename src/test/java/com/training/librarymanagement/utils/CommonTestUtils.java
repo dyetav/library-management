@@ -15,6 +15,7 @@ import com.training.librarymanagement.repositories.FineRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -41,15 +42,19 @@ public class CommonTestUtils {
     @Autowired
     protected BookReservationRepository bookReservationRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     protected void clearAllRepositories() {
         bookReservationRepository.deleteAll();
         itemRepository.deleteAll();
         libraryRepository.deleteAll();
         authorRepository.deleteAll();
         fineRepository.deleteAll();
+        accountRepository.deleteAll();
     }
 
-    protected Account createAccount(String username, String firstName, String lastName, Boolean isActive) {
+    protected Account createAccount(String username, String password, String firstName, String lastName, Boolean isActive) {
         Account newAccount = null;
         if (isActive == null) {
             newAccount = new Librarian();
@@ -60,6 +65,7 @@ public class CommonTestUtils {
         newAccount.setFirstName(firstName);
         newAccount.setLastName(lastName);
         newAccount.setUsername(username);
+        newAccount.setPassword(passwordEncoder.encode(password));
         return accountRepository.save(newAccount);
     }
 

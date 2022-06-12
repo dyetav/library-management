@@ -8,9 +8,14 @@ import com.training.librarymanagement.entities.dtos.AccountInputDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
 import com.training.librarymanagement.enums.AccountType;
 import com.training.librarymanagement.enums.Availability;
+import com.training.librarymanagement.jwt.AuthenticationRequest;
 import com.training.librarymanagement.utils.CommonTestUtils;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import org.aspectj.lang.annotation.After;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,10 +35,31 @@ public class AccountControllerIT extends CommonTestUtils {
     @LocalServerPort
     private int port;
 
+    private String token;
+    private Account member;
+
+    @BeforeEach
+    public void before() {
+        clearAllRepositories();
+        member = createAccount("dietav", "password", "Diego", "Tavolaro", true);
+        AuthenticationRequest authenticationRequest = new AuthenticationRequest("dietav", "password");
+        token = RestAssured.given().port(port)
+            .body(authenticationRequest)
+            .expect()
+            .when().post("/library-management/signin")
+            .then().assertThat().statusCode(200)
+            .extract().header("Authorization");
+    }
+
+    @AfterEach
+    public void after() {
+        clearAllRepositories();
+    }
+
     @Test
     public void testGetAccountById_Success() {
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         Member testedMember = RestAssured.given().port(port).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/account/v1/accounts/{id}")
             .then().assertThat().statusCode(200)
@@ -53,33 +79,35 @@ public class AccountControllerIT extends CommonTestUtils {
         newAccountToCreate.setFirstName("Diego");
         newAccountToCreate.setLastName("T");
         newAccountToCreate.setUsername("Neo");
+        newAccountToCreate.setPassword("password");
         RestAssured.given().port(port).body(newAccountToCreate)
             .contentType(ContentType.JSON).expect()
-            .when().post("/library-management/api/account/v1/accounts")
+            .when().post("/library-management/api/account/signup")
             .then().assertThat().statusCode(201);
 
         List<Account> accounts = accountRepository.findAll();
-        assertEquals(1, accounts.size());
+        assertEquals(2, accounts.size());
 
         AccountInputDTO adminAccount = new AccountInputDTO();
         adminAccount.setType(AccountType.ADMIN);
         adminAccount.setFirstName("Elodie");
         adminAccount.setLastName("K");
         adminAccount.setUsername("MISS");
+        adminAccount.setPassword("password");
         RestAssured.given().port(port).body(adminAccount)
             .contentType(ContentType.JSON).expect()
-            .when().post("/library-management/api/account/v1/accounts")
+            .when().post("/library-management/api/account/signup")
             .then().assertThat().statusCode(201);
 
         accounts = accountRepository.findAll();
-        assertEquals(2, accounts.size());
+        assertEquals(3, accounts.size()); // 2 here + 1 for authentication
 
     }
 
     @Test
     public void testGetOnloanBooksByAccount_NoBooksOnLoan_Success() {
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         BookDTO[] booksArray = RestAssured.given().port(port).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/account/v1/accounts/{id}/books")
             .then().assertThat().statusCode(200)
@@ -91,12 +119,12 @@ public class AccountControllerIT extends CommonTestUtils {
 
     @Test
     public void testGetOnloanBooksByAccount_SomeBooksOnLoan_Success() {
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
 
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
@@ -105,6 +133,7 @@ public class AccountControllerIT extends CommonTestUtils {
         createItem("YYY", book2);
 
         BookDTO[] booksArray = RestAssured.given().port(port).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/account/v1/accounts/{id}/books")
             .then().assertThat().statusCode(200)
@@ -114,11 +143,13 @@ public class AccountControllerIT extends CommonTestUtils {
         assertEquals(1, books.size());
 
         RestAssured.given().port(port).pathParam("isbn", book2.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
 
         booksArray = RestAssured.given().port(port).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/account/v1/accounts/{id}/books")
             .then().assertThat().statusCode(200)
@@ -133,7 +164,7 @@ public class AccountControllerIT extends CommonTestUtils {
         RestAssured.given().port(port).pathParam("id", "NOT_EXISTING")
             .expect()
             .when().get("/library-management/api/account/v1/accounts/{id}")
-            .then().assertThat().statusCode(404);
+            .then().assertThat().statusCode(403);
     }
 
 }

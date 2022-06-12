@@ -3,11 +3,8 @@ package com.training.librarymanagement.filters;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.training.librarymanagement.jwt.AuthenticationRequest;
 import com.training.librarymanagement.jwt.JwtTokenUtil;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,10 +16,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
 
 public class LibraryAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
 

@@ -38,7 +38,7 @@ public class LibrarySecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .addFilter(new LibraryAuthenticationFilter(authenticationManager(), jwtTokenUtil))
                 .addFilterAfter(new LibraryJwtVerificationFilter(jwtTokenUtil), LibraryAuthenticationFilter.class)
                 .authorizeRequests()
-                .antMatchers("/library-management/signup").permitAll()
+                .antMatchers("/library-management/api/account/signup").permitAll()
                 .anyRequest().authenticated();
     }
 

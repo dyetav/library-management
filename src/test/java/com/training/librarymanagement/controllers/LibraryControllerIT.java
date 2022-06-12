@@ -14,6 +14,7 @@ import com.training.librarymanagement.entities.dtos.ReservationInputDTO;
 import com.training.librarymanagement.entities.dtos.ReturnBookDTO;
 import com.training.librarymanagement.enums.Availability;
 import com.training.librarymanagement.enums.FineStatus;
+import com.training.librarymanagement.jwt.AuthenticationRequest;
 import com.training.librarymanagement.utils.CommonTestUtils;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -48,9 +49,20 @@ public class LibraryControllerIT extends CommonTestUtils {
     @LocalServerPort
     private int port;
 
+    private String token;
+    private Account member;
+
     @BeforeEach
     public void setup() {
         super.clearAllRepositories();
+        member = createAccount("dietav", "password", "Diego", "Tavolaro", true);
+        AuthenticationRequest authenticationRequest = new AuthenticationRequest("dietav", "password");
+        token = RestAssured.given().port(port)
+            .body(authenticationRequest)
+            .expect()
+            .when().post("/library-management/signin")
+            .then().assertThat().statusCode(200)
+            .extract().header("Authorization");
     }
 
     @AfterEach
@@ -63,6 +75,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("ABC_123", author, "Matrix");
         BookDTO testedBook = RestAssured.given().port(port).pathParam("isbn", book.getISBN())
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books/{isbn}")
             .then().assertThat().statusCode(200)
@@ -76,6 +89,7 @@ public class LibraryControllerIT extends CommonTestUtils {
     @Test
     public void testGetBooksByIsbn_BookNotExisting() {
         RestAssured.given().port(port).pathParam("isbn", "NOT_EXISTING")
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books/{isbn}")
             .then().assertThat().statusCode(404);
@@ -88,6 +102,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         createBook("DEF_456", author, "Matrix1");
         createBook("ABC_123", author, "Matrix2");
         BookDTO[] books = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books")
             .then().assertThat().statusCode(200)
@@ -108,6 +123,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         }
 
         BookDTO[] books = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books?page=0&size=25")
             .then().assertThat().statusCode(200)
@@ -120,6 +136,7 @@ public class LibraryControllerIT extends CommonTestUtils {
     @Test
     public void testGetBooks_Success_EmptyList() {
         BookDTO[] books = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books")
             .then().assertThat().statusCode(200)
@@ -141,6 +158,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         book.setSubjectCategory("Science Fiction");
 
         BookDTO response = RestAssured.given().port(port).body(book)
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect().contentType(ContentType.JSON)
             .when().post("/library-management/api/library/v1/books")
             .then().assertThat().statusCode(201)
@@ -163,6 +181,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         book.setSubjectCategory("Science Fiction");
 
         RestAssured.given().port(port).body(book)
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect().contentType(ContentType.JSON)
             .when().post("/library-management/api/library/v1/books")
             .then().assertThat().statusCode(404);
@@ -181,6 +200,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         book.setSubjectCategory("Science Fiction");
 
         RestAssured.given().port(port).body(book)
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect().contentType(ContentType.JSON)
             .when().post("/library-management/api/library/v1/books")
             .then().assertThat().statusCode(201);
@@ -194,6 +214,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         secondBook.setSubjectCategory("Drama");
 
         RestAssured.given().port(port).body(secondBook)
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect().contentType(ContentType.JSON)
             .when().post("/library-management/api/library/v1/books")
             .then().assertThat().statusCode(409);
@@ -206,6 +227,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book book = createBook("AAA_123", author, "Matrix");
 
         RestAssured.given().port(port).pathParam("isbn", book.getISBN())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}")
             .then().assertThat().statusCode(204);
@@ -218,6 +240,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         createItem("XXX", book);
 
         RestAssured.given().port(port).pathParam("isbn", book.getISBN())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}")
             .then().assertThat().statusCode(409);
@@ -229,8 +252,8 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
         createItem("YYY", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
@@ -259,12 +282,13 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
         createItem("YYY", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(409);
@@ -280,24 +304,27 @@ public class LibraryControllerIT extends CommonTestUtils {
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
         assertEquals(2, initialBookItems.size());
 
-        Account member1 = createAccount("dietav", "Diego", "Tavolaro", true);
-        Account member2 = createAccount("giutav", "Giulia", "Tavolaro", true);
-        Account member3 = createAccount("elokla", "Elodie", "Klauder", true);
+        Account member2 = createAccount("giutav", "password", "Giulia", "Tavolaro", true);
+        Account member3 = createAccount("elokla", "password", "Elodie", "Klauder", true);
 
         // booking two items, the third reservation fails
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
-            .pathParam("id", member1.getId())
+            .pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
             .pathParam("id", member2.getId())
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
             .pathParam("id", member3.getId())
             .contentType(ContentType.JSON).expect()
@@ -309,7 +336,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(2, bookItems.size());
-        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member1);
+        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member);
         Set<BookReservation> resMember2 = bookReservationRepository.findByAccount(member2);
         assertEquals(1, resMember1.size());
         assertEquals(1, resMember2.size());
@@ -325,21 +352,22 @@ public class LibraryControllerIT extends CommonTestUtils {
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
         assertEquals(1, initialBookItems.size());
 
-        Account member1 = createAccount("dietav", "Diego", "Tavolaro", true);
-        Account member2 = createAccount("elokla", "Elodie", "Klauder", true);
+        Account member2 = createAccount("elokla", "password", "Elodie", "Klauder", true);
         ReservationInputDTO reservationInputDTO = new ReservationInputDTO(
             Date.from(Instant.now().plus(11L, ChronoUnit.DAYS)),
             Date.from(Instant.now().plus(16L, ChronoUnit.DAYS))
         );
         // booking two items, the third reservation fails
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
-            .pathParam("id", member1.getId())
+            .pathParam("id", member.getId())
             .body(reservationInputDTO)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
             .pathParam("id", member2.getId())
             .contentType(ContentType.JSON).expect()
@@ -351,7 +379,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member1);
+        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member);
         Set<BookReservation> resMember2 = bookReservationRepository.findByAccount(member2);
         assertEquals(1, resMember1.size());
         assertEquals(1, resMember2.size());
@@ -368,21 +396,22 @@ public class LibraryControllerIT extends CommonTestUtils {
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
         assertEquals(1, initialBookItems.size());
 
-        Account member1 = createAccount("dietav", "Diego", "Tavolaro", true);
-        Account member2 = createAccount("elokla", "Elodie", "Klauder", true);
+        Account member2 = createAccount("elokla", "password", "Elodie", "Klauder", true);
         ReservationInputDTO reservationInputDTO = new ReservationInputDTO(
             Date.from(Instant.now().plus(5L, ChronoUnit.DAYS)),
             Date.from(Instant.now().plus(16L, ChronoUnit.DAYS))
         );
         // booking two items, the third reservation fails
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
-            .pathParam("id", member1.getId())
+            .pathParam("id", member.getId())
             .body(reservationInputDTO)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
             .pathParam("id", member2.getId())
             .contentType(ContentType.JSON).expect()
@@ -394,7 +423,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book reservedBook = reservedBookOpt.get();
         Set<BookItem> bookItems = itemRepository.findByBook(reservedBook);
         assertEquals(1, bookItems.size());
-        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member1);
+        Set<BookReservation> resMember1 = bookReservationRepository.findByAccount(member);
         Set<BookReservation> resMember2 = bookReservationRepository.findByAccount(member2);
         assertEquals(1, resMember1.size());
         assertEquals(0, resMember2.size());
@@ -408,12 +437,12 @@ public class LibraryControllerIT extends CommonTestUtils {
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
         createItem("YYY", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         ReservationInputDTO reservationInputDTO = new ReservationInputDTO(
             Date.from(Instant.now().plus(1L, ChronoUnit.DAYS)),
             Date.from(Instant.now().plus(5L, ChronoUnit.DAYS))
         );
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .body(reservationInputDTO)
             .contentType(ContentType.JSON).expect()
@@ -430,6 +459,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.RESERVED)).count());
 
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .body(reservationInputDTO)
             .contentType(ContentType.JSON).expect()
@@ -456,6 +486,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         BookItem onLoanBookItem = createItem("ZZZ", book);
         createReservation(onLoanBookItem, Date.from(Instant.now()), Date.from(Instant.now().plus(10L, ChronoUnit.DAYS)), Availability.ON_LOAN);
         BookItemsDTO output = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books/{isbn}/available-items")
@@ -477,6 +508,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         BookItem b3 = createItem("ZZZ", book);
         createReservation(b3, Date.from(Instant.now()), Date.from(Instant.now().plus(10L, ChronoUnit.DAYS)), Availability.ON_LOAN);
         BookItemsDTO output = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
             .expect().contentType(ContentType.JSON)
             .when().get("/library-management/api/library/v1/books/{isbn}/available-items")
@@ -494,25 +526,28 @@ public class LibraryControllerIT extends CommonTestUtils {
         createItem("XXX", book);
         createItem("YYY", book);
         createItem("ZZZ", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
-        Account member2 = createAccount("elodie", "Elodie", "Tavolaro", true);
-        Account librarian = createAccount("chicco", "Paolo", "Raspadori", null);
+        Account member2 = createAccount("elodie", "password", "Elodie", "Tavolaro", true);
+        Account librarian = createAccount("chicco", "password", "Paolo", "Raspadori", null);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
 
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", librarian.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
 
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member2.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
 
         AccountDTO[] accounts = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN())
             .contentType(ContentType.JSON).expect()
             .when().get("/library-management/api/library/v1/books/{isbn}/accounts")
@@ -543,8 +578,8 @@ public class LibraryControllerIT extends CommonTestUtils {
         createItem("XXX", book);
         createItem("YYY", book);
         createItem("ZZZ", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
@@ -558,6 +593,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .body(returnBook)
             .contentType(ContentType.JSON).expect()
@@ -580,12 +616,12 @@ public class LibraryControllerIT extends CommonTestUtils {
         createItem("XXX", book);
         createItem("YYY", book);
         createItem("ZZZ", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         ReservationInputDTO reservationInputDTO = new ReservationInputDTO(
             Date.from(Instant.now().plus(1L, ChronoUnit.DAYS)),
             Date.from(Instant.now().plus(5L, ChronoUnit.DAYS))
         );
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .body(reservationInputDTO)
             .contentType(ContentType.JSON).expect()
@@ -601,6 +637,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .body(returnBook)
             .contentType(ContentType.JSON).expect()
@@ -624,7 +661,6 @@ public class LibraryControllerIT extends CommonTestUtils {
         createItem("XXX", book);
         createItem("YYY", book);
         createItem("ZZZ", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
 
         Set<BookItem> initialBookItems = itemRepository.findByBook(book);
         assertEquals(3, initialBookItems.size());
@@ -634,6 +670,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .body(returnBook)
             .contentType(ContentType.JSON).expect()
@@ -656,8 +693,8 @@ public class LibraryControllerIT extends CommonTestUtils {
         createItem("XXX", book);
         createItem("YYY", book);
         createItem("ZZZ", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
@@ -670,6 +707,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(12L));
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .body(returnBook)
             .contentType(ContentType.JSON).expect()
@@ -694,8 +732,8 @@ public class LibraryControllerIT extends CommonTestUtils {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
@@ -703,6 +741,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", "NOT_EXISTING_BOOK").pathParam("id", member.getId())
             .body(returnBook)
             .contentType(ContentType.JSON).expect()
@@ -716,8 +755,8 @@ public class LibraryControllerIT extends CommonTestUtils {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
@@ -725,6 +764,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", "NOT_EXISTING_ACCOUNT")
             .body(returnBook)
             .contentType(ContentType.JSON).expect()
@@ -738,10 +778,10 @@ public class LibraryControllerIT extends CommonTestUtils {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         ReturnBookDTO returnBook = new ReturnBookDTO();
         returnBook.setReturnDate(LocalDateTime.now().plusDays(4L));
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", "NOT_EXISTING_ACCOUNT")
             .body(returnBook)
             .contentType(ContentType.JSON).expect()
@@ -760,6 +800,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         assertEquals(3, itemRepository.findByBook(book).size());
 
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("code", "YYY")
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}/items/{code}")
             .then().assertThat().statusCode(204);
@@ -777,6 +818,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         assertEquals(1, itemRepository.findByBook(book).size());
 
         RestAssured.given().port(port).pathParam("isbn", "NOT_EXISTING_ISBN_BOOK").pathParam("code", "XXX")
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}/items/{code}")
             .then().assertThat().statusCode(404);
@@ -793,13 +835,14 @@ public class LibraryControllerIT extends CommonTestUtils {
 
         assertEquals(1, itemRepository.findByBook(book).size());
 
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
             .then().assertThat().statusCode(202);
 
         RestAssured.given().port(port).pathParam("isbn", book.getISBN()).pathParam("code", "XXX")
+            .header("Authorization", "Bearer " + token)
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}/items/{code}")
             .then().assertThat().statusCode(409);
@@ -813,12 +856,12 @@ public class LibraryControllerIT extends CommonTestUtils {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         ReservationInputDTO reservationInputDTO = new ReservationInputDTO(
             Date.from(Instant.now().plus(1L, ChronoUnit.DAYS)),
             Date.from(Instant.now().plus(5L, ChronoUnit.DAYS))
         );
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .body(reservationInputDTO)
             .contentType(ContentType.JSON).expect()
@@ -834,6 +877,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.RESERVED)).count());
 
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
@@ -854,8 +898,8 @@ public class LibraryControllerIT extends CommonTestUtils {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
         createItem("XXX", book);
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .contentType(ContentType.JSON).expect()
             .when().post("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
@@ -871,6 +915,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         assertEquals(1, reservations.stream().filter(br -> br.getAvailability().equals(Availability.ON_LOAN)).count());
 
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", member.getId())
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
@@ -888,6 +933,7 @@ public class LibraryControllerIT extends CommonTestUtils {
         Author author = createAuthor("Diego", "Tavolaro");
         Book book = createBook("AAA_123", author, "Matrix");
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", book.getISBN()).pathParam("id", "NOT_EXISTING_ACCOUNT")
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")
@@ -896,8 +942,8 @@ public class LibraryControllerIT extends CommonTestUtils {
 
     @Test
     public void testDeleteReservationByBookAndAccount_Fail_BookNotExisting() {
-        Account member = createAccount("dietav", "Diego", "Tavolaro", true);
         RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + token)
             .pathParam("isbn", "NOT_EXISTING_BOOK").pathParam("id", member.getId())
             .contentType(ContentType.JSON).expect()
             .when().delete("/library-management/api/library/v1/books/{isbn}/account/{id}/reserve")

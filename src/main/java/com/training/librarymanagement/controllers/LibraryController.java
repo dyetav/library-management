@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,6 +48,7 @@ public class LibraryController {
 
     @ApiOperation(value = "Get a book by its ISBN", tags = {"library"})
     @GetMapping("/v1/books/{isbn}")
+    @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
     public BookDTO getBooksByISBN(@PathVariable("isbn") String isbn) throws BookNotFoundException {
         LOG.info("Calling get books by ISBN with param isbn {}", isbn);
         BookDTO book = libraryService.getBooksByISBN(isbn);
@@ -55,16 +57,16 @@ public class LibraryController {
 
     @ApiOperation(value = "Get a paginated list of all books", tags = {"library"})
     @GetMapping("/v1/books")
+    @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
     public List<BookDTO> getBooks(Pageable pageable) {
         LOG.info("Calling get all books");
         List<BookDTO> book = libraryService.getBooks(pageable);
         return book;
     }
 
-    // TODO: only ADMIN
-    // TODO: ----------
     @ApiOperation(value = "Get the current owners of a book (who owns on-loan book items)", tags = {"library"})
     @GetMapping("/v1/books/{isbn}/accounts")
+    @PreAuthorize(value = "hasRole('ADMIN')")
     public List<AccountDTO> getOwnersByBook(@PathVariable("isbn") String isbn)
         throws BookNotFoundException {
 
@@ -76,6 +78,7 @@ public class LibraryController {
     @ApiOperation(value = "Create a book", tags = {"library"})
     @PostMapping("/v1/books")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize(value = "hasRole('ADMIN')")
     public BookDTO createBook(@RequestBody BookInputDTO input)
         throws AuthorNotFoundException {
 
@@ -87,6 +90,7 @@ public class LibraryController {
     @ApiOperation(value = "Delete a book by its ISBN", tags = {"library"})
     @DeleteMapping("/v1/books/{isbn}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(value = "hasRole('ADMIN')")
     public void deleteBookByISBN(@PathVariable("isbn") String isbn) throws BookConflictException, BookNotFoundException {
         LOG.info("Calling delete book by ISBN {}", isbn);
         libraryService.deleteBookByIsbn(isbn);
@@ -95,6 +99,7 @@ public class LibraryController {
     @ApiOperation(value = "Delete a book item by its ISBN and book item code", tags = {"library"})
     @DeleteMapping("/v1/books/{isbn}/items/{code}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize(value = "hasRole('ADMIN')")
     public void deleteBookByISBNAndItemCode(@PathVariable("isbn") String isbn, @PathVariable("code") String code) throws BookConflictException, BookNotFoundException {
         LOG.info("Calling delete book by ISBN {} and item code {}", isbn, code);
         libraryService.deleteBookItemByIsbnAndCode(isbn, code);
@@ -102,6 +107,7 @@ public class LibraryController {
 
     @ApiOperation(value = "Get the available items of a book by its ISBN", tags = {"library"})
     @GetMapping("/v1/books/{isbn}/available-items")
+    @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
     public BookItemsDTO getAvailablBookItemsByISBN(@PathVariable String isbn)
         throws BookNotFoundException {
 
@@ -113,6 +119,7 @@ public class LibraryController {
     @ApiOperation(value = "Reserve a book by its ISBN", tags = {"library"})
     @PostMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
+    @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
     public void reserveBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReservationInputDTO reservation)
         throws BookNotFoundException, BookConflictException, AccountNotFoundException {
 
@@ -123,6 +130,7 @@ public class LibraryController {
     @ApiOperation(value = "Checkout a book by its ISBN", tags = {"library"})
     @PostMapping("/v1/books/{isbn}/account/{id}/checkout")
     @ResponseStatus(HttpStatus.ACCEPTED)
+    @PreAuthorize(value = "hasRole('ADMIN',)")
     public void checkoutBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId)
         throws BookNotFoundException, AccountNotFoundException {
 
@@ -133,6 +141,7 @@ public class LibraryController {
     @ApiOperation(value = "Delete a reservation of a book by its ISBN", tags = {"library"})
     @DeleteMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
+    @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
     public void deleteReservationBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId)
         throws BookNotFoundException, AccountNotFoundException {
 
@@ -143,6 +152,7 @@ public class LibraryController {
     @ApiOperation(value = "Return a book by its ISBN", tags = {"library"})
     @PostMapping("/v1/books/{isbn}/account/{id}/return")
     @ResponseStatus(HttpStatus.ACCEPTED)
+    @PreAuthorize(value = "hasRole('ADMIN')")
     public void returnBookByISBN(@PathVariable("isbn") String isbn, @PathVariable("id") String accountId, @RequestBody(required = false) ReturnBookDTO returnInput)
         throws BookNotFoundException, AccountNotFoundException {
 

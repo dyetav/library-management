@@ -9,6 +9,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import javax.servlet.FilterChain;
@@ -54,7 +55,7 @@ public class LibraryAuthenticationFilter extends UsernamePasswordAuthenticationF
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
         LOG.info("Successfully authenticated: username {}", authResult.getName());
-        String token = jwtTokenUtil.generateToken(authResult.getName());
+        String token = jwtTokenUtil.generateToken(authResult.getName(), authResult.getAuthorities());
         response.setHeader("Authorization", "Bearer " + token);
     }
 }

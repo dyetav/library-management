@@ -7,7 +7,6 @@ import com.training.librarymanagement.jwt.JwtUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -33,13 +32,13 @@ public class LibrarySecurityConfiguration extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http
             .csrf().disable()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                .addFilter(new LibraryAuthenticationFilter(authenticationManager(), jwtTokenUtil))
-                .addFilterAfter(new LibraryJwtVerificationFilter(jwtTokenUtil), LibraryAuthenticationFilter.class)
-                .authorizeRequests()
-                .antMatchers("/library-management/api/account/signup").permitAll()
-                .anyRequest().authenticated();
+            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .addFilter(new LibraryAuthenticationFilter(authenticationManager(), jwtTokenUtil))
+            .addFilterAfter(new LibraryJwtVerificationFilter(jwtTokenUtil), LibraryAuthenticationFilter.class)
+            .authorizeRequests()
+            .antMatchers("/library-management/api/account/signup", "/library-management/api/library/v1/ping").permitAll()
+            .anyRequest().authenticated();
     }
 
     @Bean

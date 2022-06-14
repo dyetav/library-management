@@ -3,6 +3,7 @@ package com.training.librarymanagement.entities.dtos;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.training.librarymanagement.enums.AccountType;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -18,6 +19,9 @@ public class AccountDTO {
     private String lastName;
 
     private Boolean isActive;
+
+    @JsonIgnore
+    private AccountType accountType;
 
     public AccountDTO() {
         // NOTHING
@@ -69,5 +73,13 @@ public class AccountDTO {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public AccountType getAccountType() {
+        return accountType;
+    }
+
+    public void setAccountType(AccountType accountType) {
+        this.accountType = accountType;
     }
 }

@@ -40,7 +40,10 @@ public class AccountMapper {
         accountDTO.setPassword(account.getPassword());
 
         if (account instanceof Member) {
+            accountDTO.setAccountType(AccountType.MEMBER);
             accountDTO.setActive(((Member) account).getActive());
+        } else {
+            accountDTO.setAccountType(AccountType.ADMIN);
         }
         return accountDTO;
     }

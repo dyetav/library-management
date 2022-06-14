@@ -13,6 +13,7 @@ import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.OneToMany;
+import javax.persistence.UniqueConstraint;
 import java.util.Set;
 
 @Entity
@@ -27,6 +28,7 @@ public class Account {
     @Id
     private String id;
 
+    @Column(unique = true)
     private String username;
 
     private String firstName;

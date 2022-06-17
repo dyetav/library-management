@@ -19,6 +19,8 @@ import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
 import com.training.librarymanagement.exceptions.ReservationConflictException;
 import com.training.librarymanagement.exceptions.ReservationNotFoundException;
+import com.training.librarymanagement.filters.BookSpecification;
+import com.training.librarymanagement.filters.FilterBook;
 import com.training.librarymanagement.repositories.AccountRepository;
 import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.BookReservationRepository;
@@ -78,10 +80,12 @@ public class LibraryService {
         return bookDTO;
     }
 
-    public List<BookDTO> getBooks(Pageable pageable) {
-        Page<Book> paginatedBooks = libraryRepository.findAll(pageable);
+    public List<BookDTO> getBooks(FilterBook filter, Pageable pageable) {
+        BookSpecification bookSpecification = new BookSpecification(filter);
+        Page<Book> paginatedBooks = libraryRepository.findAll(bookSpecification, pageable);
         return LibraryMapper.toDTOs(paginatedBooks.get().collect(Collectors.toList()));
     }
+
 
     public BookDTO createBook(BookInputDTO book) throws AuthorNotFoundException {
         Author author = authorRepository.findById(book.getAuthorId()).orElseThrow(AuthorNotFoundException::new);

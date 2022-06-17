@@ -127,6 +127,63 @@ public class LibraryControllerIT extends CommonTestUtils {
     }
 
     @Test
+    public void testGetBooks_FilteringByTitle_Success() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        createBook("DEF_456", author, "Matrix1");
+        createBook("ABC_123", author, "Matrix2");
+        BookDTO[] books = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + tokenMember)
+            .queryParam("title", "Matrix1")
+            .expect().contentType(ContentType.JSON)
+            .when().get("/library-management/api/library/v1/books")
+            .then().assertThat().statusCode(200)
+            .extract().as(BookDTO[].class);
+
+        List<BookDTO> bookList = Arrays.asList(books);
+        assertEquals(1, bookList.size());
+        List<String> isbns = bookList.stream().map(BookDTO::getISBN).collect(Collectors.toList());
+        assertTrue(isbns.contains("DEF_456"));
+    }
+
+    @Test
+    public void testGetBooks_FilteringByTitleAndSubject_Success() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Book book1 = createBook("DEF_456", author, "Matrix1");
+        Book book2 = createBook("ABC_123", author, "Matrix2");
+        book2.setSubjectCategory("Documentary");
+        libraryRepository.save(book2);
+        BookDTO[] books = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + tokenMember)
+            .queryParam("title", "Matrix1")
+            .queryParam("category", "Documentary")
+            .expect().contentType(ContentType.JSON)
+            .when().get("/library-management/api/library/v1/books")
+            .then().assertThat().statusCode(200)
+            .extract().as(BookDTO[].class);
+
+        List<BookDTO> bookList = Arrays.asList(books);
+        assertEquals(0, bookList.size());
+    }
+
+    @Test
+    public void testGetBooks_FilteringAuthor_Success() {
+        Author author = createAuthor("Diego", "Tavolaro");
+        Author author2 = createAuthor("Elodie", "Klauder");
+        Book book1 = createBook("DEF_456", author, "Matrix1");
+        Book book2 = createBook("ABC_123", author2, "Matrix2");
+        BookDTO[] books = RestAssured.given().port(port)
+            .header("Authorization", "Bearer " + tokenMember)
+            .queryParam("author", "Klauder")
+            .expect().contentType(ContentType.JSON)
+            .when().get("/library-management/api/library/v1/books")
+            .then().assertThat().statusCode(200)
+            .extract().as(BookDTO[].class);
+
+        List<BookDTO> bookList = Arrays.asList(books);
+        assertEquals(1, bookList.size());
+    }
+
+    @Test
     public void testGetManyBooks_Success() {
         Author author = createAuthor("Diego", "Tavolaro");
         for (int i = 0; i < 27; i++) {

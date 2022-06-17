@@ -7,13 +7,14 @@
 - DONE test on creating the same user with the same username
 - DONE how to hide password on signin request -> nothing to do with POST
 - DONE roles over security
+- DONE timezone for expiration on authentication and jwt -> unuseful, it is possible to use UTC
+- DONE security on some endpoints
 - Cors
 - endpoint to leverage privileges (MEMBER to LIBRARIAN)
-- timezone for expiration on authentication and jwt
 - search endpoint with specifications (filtering)
-- security on some endpoints
 - notification management system on reservations
 - payment gateway for fines payment
+- check for vulnerabilities (OWASP)
 - dockerizing
 - kubernetes
 - starting frontend

@@ -10,6 +10,7 @@ import com.training.librarymanagement.exceptions.AccountNotFoundException;
 import com.training.librarymanagement.exceptions.AuthorNotFoundException;
 import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
+import com.training.librarymanagement.filters.FilterBook;
 import com.training.librarymanagement.services.LibraryService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -58,9 +60,16 @@ public class LibraryController {
     @ApiOperation(value = "Get a paginated list of all books", tags = {"library"})
     @GetMapping("/v1/books")
     @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
-    public List<BookDTO> getBooks(Pageable pageable) {
+    public List<BookDTO> getBooks(@RequestParam(value = "title", required = false) String title,
+                                  @RequestParam(value = "category", required = false) String category,
+                                  @RequestParam(value = "author", required = false) String author,
+                                  Pageable pageable) {
         LOG.info("Calling get all books");
-        List<BookDTO> book = libraryService.getBooks(pageable);
+        FilterBook filter = new FilterBook();
+        filter.setTitle(title);
+        filter.setCategory(category);
+        filter.setAuthorName(author);
+        List<BookDTO> book = libraryService.getBooks(filter, pageable);
         return book;
     }
 

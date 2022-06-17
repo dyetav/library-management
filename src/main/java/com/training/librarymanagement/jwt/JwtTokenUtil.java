@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -69,12 +70,13 @@ public class JwtTokenUtil {
     }
 
     private String doGenerateToken(Map<String, Object> claims, String subject) {
-
+        Instant now = Instant.now();
+        Instant nowPlusExpiration = now.plus(expiration, ChronoUnit.MINUTES);
         return Jwts.builder()
             .setClaims(claims)
-            .setExpiration(Date.from(LocalDateTime.now().plus(expiration, ChronoUnit.MINUTES).toInstant(ZoneOffset.UTC)))
+            .setExpiration(Date.from(nowPlusExpiration))
             .setSubject(subject)
-            .setIssuedAt(new Date(System.currentTimeMillis()))
+            .setIssuedAt(Date.from(now))
             .signWith(SignatureAlgorithm.HS512, secret)
             .compact();
 

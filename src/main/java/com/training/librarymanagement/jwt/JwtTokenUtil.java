@@ -29,7 +29,7 @@ public class JwtTokenUtil {
     @Value("${jwt.secret}")
     private String secret;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration.seconds:300}")
     private Long expiration;
 
     public String getUsernameFromToken(String token) {
@@ -71,7 +71,7 @@ public class JwtTokenUtil {
 
     private String doGenerateToken(Map<String, Object> claims, String subject) {
         Instant now = Instant.now();
-        Instant nowPlusExpiration = now.plus(expiration, ChronoUnit.MINUTES);
+        Instant nowPlusExpiration = now.plus(expiration, ChronoUnit.SECONDS);
         return Jwts.builder()
             .setClaims(claims)
             .setExpiration(Date.from(nowPlusExpiration))

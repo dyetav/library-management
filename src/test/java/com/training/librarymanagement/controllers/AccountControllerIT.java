@@ -279,4 +279,21 @@ public class AccountControllerIT extends CommonTestUtils {
         assertEquals(1, admins.size());
     }
 
+    @Test
+    public void testExpirationToken() throws InterruptedException {
+        RestAssured.given().port(port).pathParam("id", admin.getId())
+            .header("Authorization", "Bearer " + tokenAdmin)
+            .expect().contentType(ContentType.JSON)
+            .when().get("/library-management/api/account/v1/accounts/{id}")
+            .then().assertThat().statusCode(200)
+            .extract().as(Member.class);
+
+        Thread.sleep(3000);
+
+        RestAssured.given().port(port).pathParam("id", admin.getId())
+            .header("Authorization", "Bearer " + tokenAdmin)
+            .when().get("/library-management/api/account/v1/accounts/{id}")
+            .then().assertThat().statusCode(403);
+    }
+
 }

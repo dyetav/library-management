@@ -75,4 +75,10 @@ public class AccountController {
         accountService.createAccount(user);
     }
 
+    @PostMapping("/v1/accounts/{id}/role/change")
+    @ApiOperation(value = "Update the role of a user", tags = {"account"})
+    @ResponseStatus(HttpStatus.OK)
+    public void changeRole(@PathVariable("id") String accountId) throws AccountNotFoundException {
+        accountService.changeRole(accountId);
+    }
 }

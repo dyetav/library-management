@@ -3,6 +3,7 @@ package com.training.librarymanagement.services;
 import com.training.librarymanagement.entities.Account;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.BookReservation;
+import com.training.librarymanagement.entities.Librarian;
 import com.training.librarymanagement.entities.Member;
 import com.training.librarymanagement.entities.dtos.AccountDTO;
 import com.training.librarymanagement.entities.dtos.AccountInputDTO;
@@ -28,6 +29,7 @@ import java.util.Set;
 public class AccountService {
 
     private static Logger LOG = LoggerFactory.getLogger(AccountService.class);
+    private static List<String> ROLES = List.of("ADMIN", "MEMBER");
 
     @Autowired
     private AccountRepository accountRepository;
@@ -71,5 +73,17 @@ public class AccountService {
             LOG.error("Changing status to admin: impossible");
             throw new AccountModificationException();
         }
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void changeRole(String accountId) throws AccountNotFoundException {
+        Account account = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException());
+        String roleTo;
+        if (account instanceof Librarian) {
+            roleTo = "MEMBER";
+        } else {
+            roleTo = "ADMIN";
+        }
+        accountRepository.changeRole(accountId, roleTo);
     }
 }

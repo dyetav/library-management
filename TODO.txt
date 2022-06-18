@@ -10,8 +10,9 @@
 - DONE timezone for expiration on authentication and jwt -> unuseful, it is possible to use UTC
 - DONE security on some endpoints
 - Cors
-- endpoint to leverage privileges (MEMBER to LIBRARIAN)
-- search endpoint with specifications (filtering)
+- DONE endpoint to leverage privileges (MEMBER to LIBRARIAN)
+- DONE search endpoint with specifications (filtering)
+- test on expiration token
 - notification management system on reservations
 - payment gateway for fines payment
 - check for vulnerabilities (OWASP)

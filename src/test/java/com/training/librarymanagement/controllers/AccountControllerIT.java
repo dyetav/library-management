@@ -3,6 +3,7 @@ package com.training.librarymanagement.controllers;
 import com.training.librarymanagement.entities.Account;
 import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
+import com.training.librarymanagement.entities.Librarian;
 import com.training.librarymanagement.entities.Member;
 import com.training.librarymanagement.entities.dtos.AccountInputDTO;
 import com.training.librarymanagement.entities.dtos.BookDTO;
@@ -21,6 +22,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -248,6 +250,33 @@ public class AccountControllerIT extends CommonTestUtils {
             .expect()
             .when().get("/library-management/api/account/v1/accounts/{id}")
             .then().assertThat().statusCode(403);
+    }
+
+    @Test
+    public void testChangeRole() {
+        List<Account> accounts = accountRepository.findAll();
+        assertEquals(2, accounts.size());
+        List<Account> admins = accounts.stream().filter(a -> a instanceof Librarian).collect(Collectors.toList());
+        assertEquals(1, admins.size());
+        RestAssured.given().port(port).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + tokenAdmin)
+            .when().post("/library-management/api/account/v1/accounts/{id}/role/change")
+            .then().assertThat().statusCode(200);
+
+        accounts = accountRepository.findAll();
+        assertEquals(2, accounts.size());
+        accounts.stream()
+            .forEach(a -> assertTrue(a instanceof Librarian));
+
+        RestAssured.given().port(port).pathParam("id", member.getId())
+            .header("Authorization", "Bearer " + tokenAdmin)
+            .when().post("/library-management/api/account/v1/accounts/{id}/role/change")
+            .then().assertThat().statusCode(200);
+
+        accounts = accountRepository.findAll();
+        assertEquals(2, accounts.size());
+        admins = accounts.stream().filter(a -> a instanceof Librarian).collect(Collectors.toList());
+        assertEquals(1, admins.size());
     }
 
 }

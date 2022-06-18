@@ -19,4 +19,10 @@ public interface AccountRepository extends JpaRepository<Account, String> {
         "SET active = :value " +
         "WHERE id = :id", nativeQuery = true)
     void changeStatus(@Param("id") String id, @Param("value") Boolean value);
+
+    @Modifying
+    @Query(value = "UPDATE account " +
+        "SET account_type = :roleTo " +
+        "WHERE id = :id", nativeQuery = true)
+    void changeRole(@Param("id") String accountId, @Param("roleTo") String roleTo);
 }

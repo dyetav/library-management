@@ -15,6 +15,7 @@
 - DONE test on expiration token
 - DONE first admin user
 - notification management system on reservations
+- different annotations for tests to study
 - payment gateway for fines payment
 - check for vulnerabilities (OWASP)
 - dockerizing

@@ -25,7 +25,6 @@ public class BookItem {
     @Id
     private String code;
 
-    private Availability availablity;
     private BigDecimal price;
 
     @OneToMany(mappedBy = "bookItem")
@@ -40,14 +39,6 @@ public class BookItem {
 
     public void setCode(String code) {
         this.code = code;
-    }
-
-    public Availability getAvailablity() {
-        return availablity;
-    }
-
-    public void setAvailablity(Availability availablity) {
-        this.availablity = availablity;
     }
 
     public BigDecimal getPrice() {

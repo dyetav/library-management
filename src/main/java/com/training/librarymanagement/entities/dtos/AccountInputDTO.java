@@ -6,6 +6,8 @@ public class AccountInputDTO {
 
     private String username;
 
+    private String password;
+
     private String firstName;
 
     private String lastName;
@@ -52,6 +54,14 @@ public class AccountInputDTO {
 
     public void setType(AccountType type) {
         this.type = type;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     @Override

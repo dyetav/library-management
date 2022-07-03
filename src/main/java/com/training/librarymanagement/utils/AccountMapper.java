@@ -27,6 +27,7 @@ public class AccountMapper {
         account.setLastName(accountToCreate.getLastName());
         account.setFirstName(accountToCreate.getFirstName());
         account.setUsername(accountToCreate.getUsername());
+        account.setPassword(accountToCreate.getPassword());
 
         return account;
     }
@@ -36,9 +37,13 @@ public class AccountMapper {
         accountDTO.setFirstName(account.getFirstName());
         accountDTO.setLastName(account.getLastName());
         accountDTO.setUsername(account.getUsername());
+        accountDTO.setPassword(account.getPassword());
 
         if (account instanceof Member) {
+            accountDTO.setAccountType(AccountType.MEMBER);
             accountDTO.setActive(((Member) account).getActive());
+        } else {
+            accountDTO.setAccountType(AccountType.ADMIN);
         }
         return accountDTO;
     }

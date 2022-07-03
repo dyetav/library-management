@@ -19,6 +19,8 @@ import com.training.librarymanagement.exceptions.BookConflictException;
 import com.training.librarymanagement.exceptions.BookNotFoundException;
 import com.training.librarymanagement.exceptions.ReservationConflictException;
 import com.training.librarymanagement.exceptions.ReservationNotFoundException;
+import com.training.librarymanagement.filters.BookSpecification;
+import com.training.librarymanagement.filters.FilterBook;
 import com.training.librarymanagement.repositories.AccountRepository;
 import com.training.librarymanagement.repositories.AuthorRepository;
 import com.training.librarymanagement.repositories.BookReservationRepository;
@@ -31,7 +33,6 @@ import com.training.librarymanagement.utils.LibraryUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -79,10 +80,12 @@ public class LibraryService {
         return bookDTO;
     }
 
-    public List<BookDTO> getBooks(Pageable pageable) {
-        Page<Book> paginatedBooks = libraryRepository.findAll(pageable);
+    public List<BookDTO> getBooks(FilterBook filter, Pageable pageable) {
+        BookSpecification bookSpecification = new BookSpecification(filter);
+        Page<Book> paginatedBooks = libraryRepository.findAll(bookSpecification, pageable);
         return LibraryMapper.toDTOs(paginatedBooks.get().collect(Collectors.toList()));
     }
+
 
     public BookDTO createBook(BookInputDTO book) throws AuthorNotFoundException {
         Author author = authorRepository.findById(book.getAuthorId()).orElseThrow(AuthorNotFoundException::new);
@@ -110,14 +113,14 @@ public class LibraryService {
      * Reservation of a book, by creating a reservation booking
      * Status of the Availability will be moved from AVAILABLE to RESERVED
      * Reservation can also be immediate: Availability moved from AVAILABLE to ONLOAN
-     *
+     * <p>
      * Reservation info:
      * - NO DATES: member is checkouting
      * - NO START DATE: member is checkouting
      * - NO END DATE: applying default reservation days
      *
-     * @param isbn code of the book
-     * @param accountId the account id of the member
+     * @param isbn             code of the book
+     * @param accountId        the account id of the member
      * @param reservationInput wished dates for the reservation
      * @throws BookNotFoundException
      * @throws AccountNotFoundException
@@ -142,8 +145,7 @@ public class LibraryService {
         ));
         boolean isAvailable = LibraryUtils.isBookAvailable(bookItems, reservationInput);
         if (isAvailable) {
-            Set<BookItem> availableBookItems = bookItems.stream().filter(b -> b.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toSet());
-            BookItem pickABook = availableBookItems.stream().findAny().get();
+            BookItem pickABook = LibraryUtils.getAvailableBookItemByReservation(bookItems, reservationInput);
 
             BookReservation reservation = new BookReservation();
             reservation.setAccount(account);
@@ -151,10 +153,10 @@ public class LibraryService {
 
             if (DateUtils.isCheckouting(reservationInput)) {
                 reservation.setStartBookingDate(Date.from(Instant.now()));
-                pickABook.setAvailablity(Availability.ON_LOAN);
+                reservation.setAvailability(Availability.ON_LOAN);
             } else {
                 reservation.setStartBookingDate(reservationInput.getWishedStartDate());
-                pickABook.setAvailablity(Availability.RESERVED);
+                reservation.setAvailability(Availability.RESERVED);
             }
 
             Date endDefaultDate = Date.from(reservation.getStartBookingDate().toInstant().plus(10, ChronoUnit.DAYS));
@@ -167,7 +169,7 @@ public class LibraryService {
 
             bookReservationRepository.save(reservation);
         } else {
-            LOG.error("Book withs ISBN {} not available for account {}", isbn, accountId);
+            LOG.error("[LIBRARY] Book withs ISBN {} not available for account {}", isbn, accountId);
             throw new BookConflictException("Book not available");
         }
     }
@@ -187,10 +189,10 @@ public class LibraryService {
         Optional<BookReservation> reservationOpt = reservationsByAccountId.stream().filter(r -> r.getBookItem().getBook().getISBN().equals(isbn)).findFirst();
         if (reservationOpt.isPresent()) {
             BookReservation reservation = reservationOpt.get();
-            reservation.getBookItem().setAvailablity(Availability.ON_LOAN);
+            reservation.setAvailability(Availability.ON_LOAN);
             bookReservationRepository.save(reservation);
         } else {
-            LOG.error("Reservation not found for Book {} and Account {}", isbn, accountId);
+            LOG.error("[LIBRARY] Reservation not found for Book {} and Account {}", isbn, accountId);
             throw new ReservationNotFoundException("Reservation not found");
         }
     }
@@ -203,7 +205,12 @@ public class LibraryService {
     public List<AccountDTO> getAccountsByBook(String isbn) throws BookNotFoundException {
         Book book = libraryRepository.findById(isbn).orElseThrow(() -> new BookNotFoundException());
         Set<BookItem> bookItems = book.getItems();
-        List<BookItem> onLoanItems = bookItems.stream().filter(b -> b.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
+        List<BookItem> onLoanItems = bookItems.stream()
+            .flatMap(bi -> bi.getBookReservations().stream())
+            .filter(br -> br.getAvailability().equals(Availability.ON_LOAN))
+            .map(br -> br.getBookItem())
+            .distinct()
+            .collect(Collectors.toList());
         List<String> onLoanItemIds = onLoanItems.stream().map(BookItem::getCode).collect(Collectors.toList());
         List<Account> owners = bookReservationRepository.findOwnersByBookItemIds(onLoanItemIds);
         return AccountMapper.toDTOs(owners);
@@ -213,8 +220,8 @@ public class LibraryService {
      * Return the book
      * The status of the Availability will be moved from ONLOAN to AVAILABLE
      *
-     * @param isbn the code of the book
-     * @param accountId the account id of the member
+     * @param isbn        the code of the book
+     * @param accountId   the account id of the member
      * @param returnInput information about the return: return date
      * @throws BookNotFoundException
      * @throws AccountNotFoundException
@@ -229,28 +236,26 @@ public class LibraryService {
             .findFirst();
         if (reservationTargetOpt.isPresent()) {
             BookReservation reservationTarget = reservationTargetOpt.get();
-            BookItem bookItem = reservationTarget.getBookItem();
-            if (bookItem.getAvailablity().equals(Availability.ON_LOAN)) {
+            if (reservationTarget.getAvailability().equals(Availability.ON_LOAN)) {
                 if (returnDate == null) {
                     reservationTarget.setEndBookingDate(new Date());
                 } else {
                     reservationTarget.setEndBookingDate(Date.from(returnDate.atZone(ZoneId.systemDefault()).toInstant()));
                 }
                 // make the book item available
-                reservationTarget.getBookItem().setAvailablity(Availability.AVAILABLE);
-                reservationTarget = bookReservationRepository.save(reservationTarget);
 
                 // apply fine if any
                 boolean outOfTime = isReservationOutOfTime(reservationTarget);
+                bookReservationRepository.delete(reservationTarget);
                 if (outOfTime) {
                     fineService.createFine(isbn, accountId);
                 }
             } else {
-                LOG.error("Return book {} for account {} impossible: book not on loan");
+                LOG.error("[LIBRARY] Return book {} for account {} impossible: book not on loan");
                 throw new ReservationConflictException("Return book impossible: book not on loan");
             }
         } else {
-            LOG.error("Return book {} for account {} impossible: reservation not found");
+            LOG.error("[LIBRARY] Return book {} for account {} impossible: reservation not found");
             throw new ReservationNotFoundException("Return book impossible: reservation not found");
         }
     }
@@ -264,6 +269,7 @@ public class LibraryService {
             libraryRepository.save(book);
             itemRepository.delete(bookItemToDelete);
         } else {
+            LOG.error("[LIBRARY] Book item {} of book with isbn {} has already got a reservation: impossible to delete", code, isbn);
             throw new BookConflictException("Book Item to delete has got a reservation");
         }
     }
@@ -277,16 +283,14 @@ public class LibraryService {
             .findFirst();
         if (reservationTargetOpt.isPresent()) {
             BookReservation bookReservation = reservationTargetOpt.get();
-            BookItem bookItem = bookReservation.getBookItem();
-            if (bookItem.getAvailablity().equals(Availability.ON_LOAN)) {
+            if (bookReservation.getAvailability().equals(Availability.ON_LOAN)) {
+                LOG.error("[LIBRARY] Book item of book with isbn {} for account {} is on loan: impossible to delete", isbn, accountId);
                 throw new ReservationConflictException("Impossible to delete the reservation: book item on loan");
             } else {
-                bookItem.setAvailablity(Availability.AVAILABLE);
-                itemRepository.save(bookItem);
                 bookReservationRepository.delete(bookReservation);
             }
         } else {
-            LOG.error("Reservation not found for book {} and account {}: impossible to delete reservation", isbn, accountId);
+            LOG.error("[LIBRARY] Reservation not found for book {} and account {}: impossible to delete reservation", isbn, accountId);
             throw new ReservationNotFoundException("Reservation not found: impossible to delete reservation");
         }
     }

@@ -1,9 +1,27 @@
 7/4/2022
 
-- delete a reservation, only if the book is in RESERVED status
-- in case of /reserve (reservation, and not checkout), we have to check the wishedEndDate to ensure that there is no overlap
-- write tests on RESERVED and ONLOAN status
-- allow reservation of a book even
+- logs
+- DONE account isActive endpoint (to make an account active)
+- DONE createAccount -> duplicate of signup
+- DONE tests on security (unit and integration tests)
+- DONE test on creating the same user with the same username
+- DONE how to hide password on signin request -> nothing to do with POST
+- DONE roles over security
+- DONE timezone for expiration on authentication and jwt -> unuseful, it is possible to use UTC
+- DONE security on some endpoints
+- Cors
+- DONE endpoint to leverage privileges (MEMBER to LIBRARIAN)
+- DONE search endpoint with specifications (filtering)
+- DONE test on expiration token
+- DONE first admin user
+- notification management system on reservations
+- different annotations for tests to study
+- microservices intercommunication to study
+- payment gateway for fines payment
+- check for vulnerabilities (OWASP)
+- dockerizing
+- kubernetes
+- starting frontend
 
 
 

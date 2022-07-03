@@ -13,6 +13,7 @@ import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.OneToMany;
+import javax.persistence.UniqueConstraint;
 import java.util.Set;
 
 @Entity
@@ -27,10 +28,13 @@ public class Account {
     @Id
     private String id;
 
+    @Column(unique = true)
     private String username;
 
     private String firstName;
     private String lastName;
+
+    private String password;
 
     @OneToMany(mappedBy = "account")
     private Set<BookReservation> bookReservation;
@@ -84,5 +88,13 @@ public class Account {
 
     public void setFine(Set<Fine> fine) {
         this.fine = fine;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

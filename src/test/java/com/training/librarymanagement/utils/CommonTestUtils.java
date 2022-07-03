@@ -4,6 +4,7 @@ import com.training.librarymanagement.entities.Account;
 import com.training.librarymanagement.entities.Author;
 import com.training.librarymanagement.entities.Book;
 import com.training.librarymanagement.entities.BookItem;
+import com.training.librarymanagement.entities.BookReservation;
 import com.training.librarymanagement.entities.Librarian;
 import com.training.librarymanagement.entities.Member;
 import com.training.librarymanagement.enums.Availability;
@@ -14,15 +15,12 @@ import com.training.librarymanagement.repositories.FineRepository;
 import com.training.librarymanagement.repositories.ItemRepository;
 import com.training.librarymanagement.repositories.LibraryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class CommonTestUtils {
 
@@ -44,15 +42,19 @@ public class CommonTestUtils {
     @Autowired
     protected BookReservationRepository bookReservationRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     protected void clearAllRepositories() {
         bookReservationRepository.deleteAll();
         itemRepository.deleteAll();
         libraryRepository.deleteAll();
         authorRepository.deleteAll();
-        fineRepository.deleteAll();;
+        fineRepository.deleteAll();
+        accountRepository.deleteAll();
     }
 
-    protected Account createAccount(String username, String firstName, String lastName, Boolean isActive) {
+    protected Account createAccount(String username, String password, String firstName, String lastName, Boolean isActive) {
         Account newAccount = null;
         if (isActive == null) {
             newAccount = new Librarian();
@@ -63,6 +65,7 @@ public class CommonTestUtils {
         newAccount.setFirstName(firstName);
         newAccount.setLastName(lastName);
         newAccount.setUsername(username);
+        newAccount.setPassword(passwordEncoder.encode(password));
         return accountRepository.save(newAccount);
     }
 
@@ -78,13 +81,8 @@ public class CommonTestUtils {
     }
 
     protected BookItem createItem(String code, Book book) {
-        return createItem(code, book, Availability.AVAILABLE);
-    }
-
-    protected BookItem createItem(String code, Book book, Availability availability) {
         BookItem item = new BookItem();
         item.setPrice(new BigDecimal("15.00"));
-        item.setAvailablity(availability);
         item.setCode(code);
         item.setBook(book);
         item = itemRepository.save(item);
@@ -96,22 +94,22 @@ public class CommonTestUtils {
         return item;
     }
 
+    protected void createReservation(BookItem bookItem, Date wishedStartDate, Date wishedEndDate, Availability availability) {
+        BookReservation bookReservation = new BookReservation();
+        bookReservation.setBookItem(bookItem);
+        bookReservation.setAvailability(availability);
+        bookReservation.setEndBookingDate(wishedEndDate);
+        bookReservation.setStartBookingDate(wishedStartDate);
+        bookReservation = bookReservationRepository.save(bookReservation);
+        bookItem.getBookReservations().add(bookReservation);
+        itemRepository.save(bookItem);
+    }
+
     protected Author createAuthor(String firstName, String lastName) {
         Author author = new Author();
         author.setFirstName(firstName);
         author.setLastName(lastName);
         return authorRepository.save(author);
-    }
-
-    //////////////////////////      ASSERTS      ///////////////////////////////////
-
-    protected void checkNumberOfItems(Set<BookItem> bookItems, int howManyAvailable, int howManyOnLoan, int howManyReserved) {
-        List<BookItem> reservedItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.RESERVED)).collect(Collectors.toList());
-        assertEquals(howManyReserved, reservedItems.size());
-        List<BookItem> onloanItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.ON_LOAN)).collect(Collectors.toList());
-        assertEquals(howManyOnLoan, onloanItems.size());
-        List<BookItem> availableItems = bookItems.stream().filter(i -> i.getAvailablity().equals(Availability.AVAILABLE)).collect(Collectors.toList());
-        assertEquals(howManyAvailable, availableItems.size());
     }
 
 }

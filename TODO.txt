@@ -16,6 +16,7 @@
 - DONE first admin user
 - notification management system on reservations
 - different annotations for tests to study
+- microservices intercommunication to study
 - payment gateway for fines payment
 - check for vulnerabilities (OWASP)
 - dockerizing

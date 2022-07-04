@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -38,11 +39,18 @@ public class NotificationService {
     }
 
     public List<NotificationDTO> getNotificationsByAccountId(String accountId) {
-        return null;
+        NotificationDTO[] notifications = webClient
+            .get()
+            .uri("/library-notification/api/notifications/v1/accounts/" + accountId)
+            .header("Content-Type", "application/json;charset=UTF-8")
+            .retrieve()
+            .bodyToMono(NotificationDTO[].class)
+            .block();
+
+        return Arrays.asList(notifications);
     }
 
     public String justAPing() {
-        LOG.info("just a ping called from management");
         return webClient
             .get()
             .uri("/library-notification/api/notifications/ping")

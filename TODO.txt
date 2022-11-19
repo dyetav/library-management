@@ -14,9 +14,10 @@
 - DONE search endpoint with specifications (filtering)
 - DONE test on expiration token
 - DONE first admin user
-- notification management system on reservations
-- different annotations for tests to study
-- microservices intercommunication to study
+- DONE notification management system on reservations
+- DONE different annotations for tests to study
+- DONE microservices intercommunication to study -> WebClient
+- replacing Date with Instant
 - payment gateway for fines payment
 - check for vulnerabilities (OWASP)
 - dockerizing

@@ -1,7 +1,7 @@
 package com.training.librarymanagement.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.training.librarymanagement.configuration.NotificationConfiguration;
+import com.training.librarymanagement.configuration.NotificationQueueConfiguration;
 import com.training.librarymanagement.entities.dtos.NotificationDTO;
 import com.training.librarymanagement.services.NotificationService;
 import org.junit.jupiter.api.Assertions;
@@ -28,7 +28,7 @@ public class NotificationServiceTest {
     private RabbitTemplate rabbitTemplate;
 
     @Mock
-    private NotificationConfiguration configuration;
+    private NotificationQueueConfiguration configuration;
 
     @Test
     public void testNotificationServiceSend_Success() throws JsonProcessingException {

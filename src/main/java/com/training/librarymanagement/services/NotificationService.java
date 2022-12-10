@@ -2,7 +2,7 @@ package com.training.librarymanagement.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.training.librarymanagement.configuration.NotificationConfiguration;
+import com.training.librarymanagement.configuration.NotificationQueueConfiguration;
 import com.training.librarymanagement.entities.dtos.NotificationDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +31,7 @@ public class NotificationService {
     private RabbitTemplate rabbitTemplate;
 
     @Autowired
-    private NotificationConfiguration configuration;
+    private NotificationQueueConfiguration configuration;
 
     public void send(NotificationDTO notification) throws JsonProcessingException {
         Message message = new Message(mapper.writeValueAsBytes(notification));

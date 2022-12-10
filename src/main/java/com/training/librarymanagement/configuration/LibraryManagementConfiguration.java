@@ -16,7 +16,10 @@ public class LibraryManagementConfiguration {
     @Value("${books.reservation.fine.price}")
     private BigDecimal fineAmount;
 
-    @Value("${library.notification.server.port}")
+    @Value("${library.notification.server.address:localhost}")
+    private String notificationServerAddress;
+
+    @Value("${library.notification.server.port:8889}")
     private int notificationServerPort;
 
     public int getReturnDays() {
@@ -29,6 +32,6 @@ public class LibraryManagementConfiguration {
 
     @Bean
     public WebClient notificationWebClient() {
-        return WebClient.create("http://localhost:" + notificationServerPort);
+        return WebClient.create("http://" + notificationServerAddress + ":" + notificationServerPort);
     }
 }

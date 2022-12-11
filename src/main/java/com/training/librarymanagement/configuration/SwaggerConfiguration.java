@@ -7,11 +7,14 @@ import org.springframework.http.ResponseEntity;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.service.Contact;
+import springfox.documentation.service.*;
 import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spi.service.contexts.SecurityContext;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableSwagger2
@@ -24,6 +27,7 @@ public class SwaggerConfiguration {
             .apis(RequestHandlerSelectors.any())
             .paths(PathSelectors.any())
             .build()
+            .securitySchemes(Arrays.asList(apiKey()))
             .apiInfo(metaData())
             .forCodeGeneration(true)
             .directModelSubstitute(java.nio.ByteBuffer.class, String.class)
@@ -31,6 +35,10 @@ public class SwaggerConfiguration {
             .select()
             .apis(RequestHandlerSelectors.basePackage( "com.training.librarymanagement"))
             .build();
+    }
+
+    private SecurityScheme apiKey() {
+        return new ApiKey("library-jwt", "Authorization", "header");
     }
 
     private ApiInfo metaData() {

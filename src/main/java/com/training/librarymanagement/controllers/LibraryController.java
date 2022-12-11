@@ -14,6 +14,7 @@ import com.training.librarymanagement.filters.FilterBook;
 import com.training.librarymanagement.services.LibraryService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.Authorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +35,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/library-management/api/library")
-@Api(value = "LibraryManagement")
+@Api(value = "LibraryManagement", tags = {"library"})
 public class LibraryController {
 
     private static Logger LOG = LoggerFactory.getLogger(LibraryController.class);
@@ -48,7 +49,7 @@ public class LibraryController {
         return "pong";
     }
 
-    @ApiOperation(value = "Get a book by its ISBN", tags = {"library"})
+    @ApiOperation(value = "Get a book by its ISBN", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @GetMapping("/v1/books/{isbn}")
     @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
     public BookDTO getBooksByISBN(@PathVariable("isbn") String isbn) throws BookNotFoundException {
@@ -57,7 +58,7 @@ public class LibraryController {
         return book;
     }
 
-    @ApiOperation(value = "Get a paginated list of all books", tags = {"library"})
+    @ApiOperation(value = "Get a paginated list of all books", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @GetMapping("/v1/books")
     @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
     public List<BookDTO> getBooks(@RequestParam(value = "title", required = false) String title,
@@ -73,7 +74,7 @@ public class LibraryController {
         return book;
     }
 
-    @ApiOperation(value = "Get the current owners of a book (who owns on-loan book items)", tags = {"library"})
+    @ApiOperation(value = "Get the current owners of a book (who owns on-loan book items)", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @GetMapping("/v1/books/{isbn}/accounts")
     @PreAuthorize(value = "hasRole('ADMIN')")
     public List<AccountDTO> getOwnersByBook(@PathVariable("isbn") String isbn)
@@ -84,7 +85,7 @@ public class LibraryController {
         return owners;
     }
 
-    @ApiOperation(value = "Create a book", tags = {"library"})
+    @ApiOperation(value = "Create a book", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @PostMapping("/v1/books")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize(value = "hasRole('ADMIN')")
@@ -96,7 +97,7 @@ public class LibraryController {
         return createdBook;
     }
 
-    @ApiOperation(value = "Delete a book by its ISBN", tags = {"library"})
+    @ApiOperation(value = "Delete a book by its ISBN", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @DeleteMapping("/v1/books/{isbn}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize(value = "hasRole('ADMIN')")
@@ -105,7 +106,7 @@ public class LibraryController {
         libraryService.deleteBookByIsbn(isbn);
     }
 
-    @ApiOperation(value = "Delete a book item by its ISBN and book item code", tags = {"library"})
+    @ApiOperation(value = "Delete a book item by its ISBN and book item code", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @DeleteMapping("/v1/books/{isbn}/items/{code}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize(value = "hasRole('ADMIN')")
@@ -114,7 +115,7 @@ public class LibraryController {
         libraryService.deleteBookItemByIsbnAndCode(isbn, code);
     }
 
-    @ApiOperation(value = "Get the available items of a book by its ISBN", tags = {"library"})
+    @ApiOperation(value = "Get the available items of a book by its ISBN", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @GetMapping("/v1/books/{isbn}/available-items")
     @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
     public BookItemsDTO getAvailablBookItemsByISBN(@PathVariable String isbn)
@@ -125,7 +126,7 @@ public class LibraryController {
         return dto;
     }
 
-    @ApiOperation(value = "Reserve a book by its ISBN", tags = {"library"})
+    @ApiOperation(value = "Reserve a book by its ISBN", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @PostMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
@@ -136,7 +137,7 @@ public class LibraryController {
         libraryService.reserveBook(isbn, accountId, reservation);
     }
 
-    @ApiOperation(value = "Checkout a book by its ISBN", tags = {"library"})
+    @ApiOperation(value = "Checkout a book by its ISBN", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @PostMapping("/v1/books/{isbn}/account/{id}/checkout")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PreAuthorize(value = "hasRole('ADMIN',)")
@@ -147,7 +148,7 @@ public class LibraryController {
         libraryService.checkout(isbn, accountId);
     }
 
-    @ApiOperation(value = "Delete a reservation of a book by its ISBN", tags = {"library"})
+    @ApiOperation(value = "Delete a reservation of a book by its ISBN", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @DeleteMapping("/v1/books/{isbn}/account/{id}/reserve")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PreAuthorize(value = "hasAnyRole('ADMIN', 'MEMBER')")
@@ -158,7 +159,7 @@ public class LibraryController {
         libraryService.deleteBookReservation(isbn, accountId);
     }
 
-    @ApiOperation(value = "Return a book by its ISBN", tags = {"library"})
+    @ApiOperation(value = "Return a book by its ISBN", authorizations = { @Authorization(value="library-jwt")}, tags = {"library"})
     @PostMapping("/v1/books/{isbn}/account/{id}/return")
     @ResponseStatus(HttpStatus.ACCEPTED)
     @PreAuthorize(value = "hasRole('ADMIN')")

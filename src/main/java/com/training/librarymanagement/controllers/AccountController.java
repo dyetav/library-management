@@ -7,6 +7,7 @@ import com.training.librarymanagement.exceptions.AccountNotFoundException;
 import com.training.librarymanagement.services.AccountService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.Authorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/library-management/api/account")
-@Api(value = "AccountManagement")
+@Api(value = "AccountManagement", tags = {"account"})
 public class AccountController {
 
     private static Logger LOG = LoggerFactory.getLogger(AccountController.class);
@@ -34,7 +35,7 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
-    @ApiOperation(value = "Get an account by its id", tags = {"account"})
+    @ApiOperation(value = "Get an account by its id", authorizations = { @Authorization(value="library-jwt")}, tags = {"account"})
     @GetMapping("/v1/accounts/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public AccountDTO getAccountById(@PathVariable("id") String id) throws AccountNotFoundException {
@@ -43,7 +44,7 @@ public class AccountController {
         return account;
     }
 
-    @ApiOperation(value = "Get an account by its username", tags = {"account"})
+    @ApiOperation(value = "Get an account by its username", authorizations = { @Authorization(value="library-jwt")}, tags = {"account"})
     @GetMapping("/v1/accounts/username/{username}")
     @PreAuthorize("hasRole('ADMIN')")
     public AccountDTO getAccountByUsername(@PathVariable("username") String username) throws AccountNotFoundException {
@@ -52,7 +53,7 @@ public class AccountController {
         return account;
     }
 
-    @ApiOperation(value = "Get the reserved books by account id", tags = {"account"})
+    @ApiOperation(value = "Get the reserved books by account id", authorizations = { @Authorization(value="library-jwt")}, tags = {"account"})
     @GetMapping("/v1/accounts/{id}/books")
     @PreAuthorize("hasRole('ADMIN')")
     public List<BookDTO> getBooksOwnershipByAccount(@PathVariable("id") String accountId) throws AccountNotFoundException {
@@ -60,6 +61,7 @@ public class AccountController {
         return accountService.getBooksOwnershipByAccount(accountId);
     }
 
+    @ApiOperation(value = "Change the status of an account", authorizations = { @Authorization(value="library-jwt")}, tags = {"account"})
     @PutMapping("/v1/accounts/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -76,7 +78,7 @@ public class AccountController {
     }
 
     @PostMapping("/v1/accounts/{id}/role/change")
-    @ApiOperation(value = "Update the role of a user", tags = {"account"})
+    @ApiOperation(value = "Update the role of a user", authorizations = { @Authorization(value="library-jwt")}, tags = {"account"})
     @ResponseStatus(HttpStatus.OK)
     public void changeRole(@PathVariable("id") String accountId) throws AccountNotFoundException {
         accountService.changeRole(accountId);

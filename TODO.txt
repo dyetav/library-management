@@ -20,7 +20,8 @@
 - replacing Date with Instant
 - payment gateway for fines payment
 - check for vulnerabilities (OWASP)
-- dockerizing
+- DONE dockerizing
+- integration tests on role change (even for myself)
 - kubernetes
 - starting frontend
 

@@ -5,7 +5,9 @@ import com.training.librarymanagement.entities.Librarian;
 import com.training.librarymanagement.repositories.AccountRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
@@ -14,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 
 @SpringBootApplication
+@EnableAutoConfiguration(exclude = {DataSourceAutoConfiguration.class})
 public class LibraryManagementApplication {
 
     @Autowired
